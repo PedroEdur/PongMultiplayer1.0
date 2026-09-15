@@ -22,6 +22,7 @@ public class PongServer : MonoBehaviour
 
     void Start()
     {
+        // Começa indo para a direita e levemente para cima
         direcaoBola = new Vector2(1f, 0.5f).normalized;
 
         servidor = new UdpClient(porta);
@@ -51,26 +52,61 @@ public class PongServer : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D colisao)
     {
+        Debug.Log("Bola bateu em: " + colisao.gameObject.name);
+
         if (colisao.gameObject.CompareTag("Wall"))
         {
             direcaoBola.y *= -1;
+
+            Debug.Log("Bola rebateu na parede!");
         }
 
         if (colisao.gameObject.CompareTag("Player"))
         {
             direcaoBola.x *= -1;
+
+            Debug.Log("Bola rebateu no jogador!");
         }
+    }
+
+    void OnTriggerEnter2D(Collider2D outro)
+    {
+        if (outro.CompareTag("GoalLeft"))
+        {
+            Debug.Log("Ponto do Player 2");
+
+            ReiniciarBola();
+        }
+
+        if (outro.CompareTag("GoalRight"))
+        {
+            Debug.Log("Ponto do Player 1");
+
+            ReiniciarBola();
+        }
+    }
+
+    void ReiniciarBola()
+    {
+        bola.position = Vector3.zero;
+
+        direcaoBola = new Vector2(
+            UnityEngine.Random.Range(0, 2) == 0 ? -1f : 1f,
+            UnityEngine.Random.Range(-0.5f, 0.5f)
+        ).normalized;
     }
 
     void ReceberDados()
     {
-        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
+        IPEndPoint ponto =
+            new IPEndPoint(IPAddress.Any, 0);
 
         while (rodando)
         {
             try
             {
-                byte[] dados = servidor.Receive(ref ponto);
+                byte[] dados =
+                    servidor.Receive(ref ponto);
 
                 string mensagem =
                     Encoding.UTF8.GetString(dados);
