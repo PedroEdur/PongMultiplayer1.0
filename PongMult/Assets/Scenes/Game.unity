@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 119673819}
   - component: {fileID: 119673821}
   m_Layer: 0
-  m_Name: Wall baixo
+  m_Name: WallBottom
   m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -270,7 +270,7 @@ GameObject:
   - component: {fileID: 373143892}
   - component: {fileID: 373143894}
   m_Layer: 0
-  m_Name: Wall cima
+  m_Name: WallTop
   m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -502,7 +502,7 @@ GameObject:
   - component: {fileID: 628628918}
   m_Layer: 0
   m_Name: GoalRight
-  m_TagString: Player
+  m_TagString: GoalRight
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1071,7 +1071,7 @@ GameObject:
   - component: {fileID: 1277321534}
   m_Layer: 0
   m_Name: GoalLeft
-  m_TagString: Player
+  m_TagString: GoalLeft
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
