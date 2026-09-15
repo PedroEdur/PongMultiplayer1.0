@@ -695,7 +695,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -731,6 +731,7 @@ GameObject:
   - component: {fileID: 750379104}
   - component: {fileID: 750379103}
   - component: {fileID: 750379105}
+  - component: {fileID: 750379106}
   m_Layer: 0
   m_Name: Player1
   m_TagString: Player
@@ -859,6 +860,20 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &750379106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 750379102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa6291214ba48764ba3d09e126bb9818, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  velocidade: 5
+  jogador1: 1
 --- !u!1 &823327856
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,6 +1437,7 @@ GameObject:
   - component: {fileID: 1545227545}
   - component: {fileID: 1545227544}
   - component: {fileID: 1545227546}
+  - component: {fileID: 1545227547}
   m_Layer: 0
   m_Name: Player2
   m_TagString: Player
@@ -1550,6 +1566,20 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &1545227547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545227543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa6291214ba48764ba3d09e126bb9818, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  velocidade: 5
+  jogador1: 0
 --- !u!1 &1666900098
 GameObject:
   m_ObjectHideFlags: 0
