@@ -22,6 +22,9 @@ public class UDPServer : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
+    private IPEndPoint jogador1;
+    private IPEndPoint jogador2;
+
     // INICIAR SERVIDOR
 
     void Start()
@@ -103,6 +106,37 @@ public class UDPServer : MonoBehaviour
                     " de " +
                     ponto
                 );
+
+                // PRIMEIRO JOGADOR
+                if (mensagem == "HELLO")
+                {
+                    if (jogador1 == null)
+                    {
+                        jogador1 = new IPEndPoint(
+                            ponto.Address,
+                            ponto.Port
+                        );
+
+                        Debug.Log(
+                            "Jogador 1 conectado: " +
+                            jogador1
+                        );
+                    }
+
+                    // SEGUNDO JOGADOR
+                    else if (jogador2 == null)
+                    {
+                        jogador2 = new IPEndPoint(
+                            ponto.Address,
+                            ponto.Port
+                        );
+
+                        Debug.Log(
+                            "Jogador 2 conectado: " +
+                            jogador2
+                        );
+                    }
+                }
             }
             catch
             {
