@@ -1873,6 +1873,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPServer
   porta: 7777
+  player1: {fileID: 0}
+  player2: {fileID: 1545227545}
+  bola: {fileID: 1799428422}
+  velocidadePlayer2: 5
 --- !u!4 &1942356321
 Transform:
   m_ObjectHideFlags: 0
