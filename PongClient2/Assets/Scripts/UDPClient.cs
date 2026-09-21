@@ -80,10 +80,20 @@ public class UDPClient : MonoBehaviour
                 string mensagem =
                     Encoding.UTF8.GetString(dados);
 
-                Debug.Log(
-                    "Recebido do servidor: " +
-                    mensagem
-                );
+                if (mensagem.StartsWith("STATE|"))
+                {
+                    Debug.Log(
+                        "Estado recebido: " +
+                        mensagem
+                    );
+                }
+                else
+                {
+                    Debug.Log(
+                        "Recebido do servidor: " +
+                        mensagem
+                    );
+                }
             }
             catch (SocketException e)
             {

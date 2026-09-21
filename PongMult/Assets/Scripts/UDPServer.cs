@@ -96,6 +96,7 @@ public class UDPServer : MonoBehaviour
         player2.position = posicao;
     }
 
+
     void EnviarEstado()
     {
         if (player1 == null ||
@@ -114,7 +115,8 @@ public class UDPServer : MonoBehaviour
             placar1 + "|" +
             placar2;
 
-        Debug.Log("Estado: " + mensagem);
+        EnviarParaJogador(jogador1, mensagem);
+        EnviarParaJogador(jogador2, mensagem);
     }
 
     void EnviarParaJogador(
