@@ -7,110 +7,38 @@ using UnityEngine;
 
 public class UDPServer : MonoBehaviour
 {
-    // CONFIGURAÇÃO
-
     public int porta = 7777;
-
-    public Transform player1;
-    public Transform player2;
-    public Transform bola;
-
-    private int placar1 = 0;
-    private int placar2 = 0;
 
     private UdpClient servidor;
     private Thread thread;
     private bool rodando = false;
 
-    // ETAPA 14
     private IPEndPoint jogador1;
     private IPEndPoint jogador2;
 
-    // INICIAR SERVIDOR
-
     void Start()
+    {
+        IniciarServidor();
+    }
+
+    void IniciarServidor()
     {
         try
         {
             servidor = new UdpClient(porta);
-
             rodando = true;
 
             thread = new Thread(ReceberDados);
             thread.IsBackground = true;
             thread.Start();
 
-            Debug.Log(
-                "Servidor UDP iniciado na porta " + porta
-            );
+            Debug.Log("Servidor UDP iniciado na porta " + porta);
         }
         catch (Exception e)
         {
-            Debug.LogError(
-                "Erro ao iniciar servidor: " + e.Message
-            );
+            Debug.LogError("Erro ao iniciar servidor: " + e.Message);
         }
     }
-
-    // UPDATE
-
-    void Update()
-    {
-        EnviarEstado();
-    }
-
-    // MONTAR ESTADO DO JOGO
-
-    void EnviarEstado()
-    {
-        if (player1 == null ||
-            player2 == null ||
-            bola == null)
-        {
-            return;
-        }
-
-        string mensagem =
-            "STATE|" +
-            player1.position.y + "|" +
-            player2.position.y + "|" +
-            bola.position.x + "|" +
-            bola.position.y + "|" +
-            placar1 + "|" +
-            placar2;
-
-        Debug.Log("Estado: " + mensagem);
-    }
-
-    // ETAPA 15
-    // ENVIAR MENSAGEM PARA UM JOGADOR
-
-    void EnviarParaJogador(
-        IPEndPoint jogador,
-        string mensagem
-    )
-    {
-        if (jogador == null)
-            return;
-
-        byte[] dados =
-            Encoding.UTF8.GetBytes(mensagem);
-
-        servidor.Send(
-            dados,
-            dados.Length,
-            jogador
-        );
-
-        Debug.Log(
-            "Enviado para " +
-            jogador +
-            ": " +
-            mensagem
-        );
-    }
-
-    // RECEBER DADOS
 
     void ReceberDados()
     {
@@ -137,12 +65,9 @@ public class UDPServer : MonoBehaviour
                     ponto
                 );
 
-                // IDENTIFICAR JOGADORES
-
                 if (mensagem == "HELLO")
                 {
                     // PRIMEIRO JOGADOR
-
                     if (jogador1 == null)
                     {
                         jogador1 = new IPEndPoint(
@@ -154,18 +79,9 @@ public class UDPServer : MonoBehaviour
                             "Jogador 1 conectado: " +
                             jogador1
                         );
-
-                        // ETAPA 15
-                        // RESPOSTA PARA O JOGADOR 1
-
-                        EnviarParaJogador(
-                            jogador1,
-                            "WELCOME|PLAYER1"
-                        );
                     }
 
                     // SEGUNDO JOGADOR
-
                     else if (jogador2 == null)
                     {
                         jogador2 = new IPEndPoint(
@@ -177,42 +93,25 @@ public class UDPServer : MonoBehaviour
                             "Jogador 2 conectado: " +
                             jogador2
                         );
-
-                        // ETAPA 15
-                        // RESPOSTA PARA O JOGADOR 2
-
-                        EnviarParaJogador(
-                            jogador2,
-                            "WELCOME|PLAYER2"
-                        );
                     }
                 }
             }
-            catch (Exception e)
+            catch
             {
-                if (rodando)
-                {
-                    Debug.LogError(
-                        "Erro ao receber: " + e.Message
-                    );
-                }
-                else
-                {
+                if (!rodando)
                     break;
-                }
             }
         }
     }
-
-    // ENCERRAR SERVIDOR
 
     void OnApplicationQuit()
     {
         rodando = false;
 
         if (servidor != null)
-        {
             servidor.Close();
-        }
+
+        if (thread != null)
+            thread.Abort();
     }
 }
