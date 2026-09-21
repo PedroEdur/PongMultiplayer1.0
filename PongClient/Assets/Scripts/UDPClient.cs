@@ -10,6 +10,10 @@ public class UDPClient : MonoBehaviour
     public string ipServidor = "127.0.0.1";
     public int porta = 7777;
 
+    public Transform player1;
+    public Transform player2;
+    public Transform bola;
+
     private UdpClient cliente;
     private Thread thread;
     private bool rodando = false;
