@@ -7,8 +7,6 @@ using UnityEngine;
 
 public class UDPServer : MonoBehaviour
 {
-    // CONFIGURAÇÃO
-
     public int porta = 7777;
 
     public Transform player1;
@@ -22,11 +20,8 @@ public class UDPServer : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
-    // ETAPA 14
     private IPEndPoint jogador1;
     private IPEndPoint jogador2;
-
-    // INICIAR SERVIDOR
 
     void Start()
     {
@@ -52,14 +47,10 @@ public class UDPServer : MonoBehaviour
         }
     }
 
-    // UPDATE
-
     void Update()
     {
         EnviarEstado();
     }
-
-    // MONTAR ESTADO DO JOGO
 
     void EnviarEstado()
     {
@@ -81,9 +72,6 @@ public class UDPServer : MonoBehaviour
 
         Debug.Log("Estado: " + mensagem);
     }
-
-    // ETAPA 15
-    // ENVIAR MENSAGEM PARA UM JOGADOR
 
     void EnviarParaJogador(
         IPEndPoint jogador,
@@ -110,8 +98,6 @@ public class UDPServer : MonoBehaviour
         );
     }
 
-    // RECEBER DADOS
-
     void ReceberDados()
     {
         IPEndPoint ponto =
@@ -137,11 +123,16 @@ public class UDPServer : MonoBehaviour
                     ponto
                 );
 
-                // IDENTIFICAR JOGADORES
+                if (mensagem.StartsWith("INPUT|"))
+                {
+                    Debug.Log(
+                        "Comando recebido do jogador: " +
+                        mensagem
+                    );
+                }
 
                 if (mensagem == "HELLO")
                 {
-                    // PRIMEIRO JOGADOR
 
                     if (jogador1 == null)
                     {
@@ -155,16 +146,11 @@ public class UDPServer : MonoBehaviour
                             jogador1
                         );
 
-                        // ETAPA 15
-                        // RESPOSTA PARA O JOGADOR 1
-
                         EnviarParaJogador(
                             jogador1,
                             "WELCOME|PLAYER1"
                         );
                     }
-
-                    // SEGUNDO JOGADOR
 
                     else if (jogador2 == null)
                     {
@@ -177,9 +163,6 @@ public class UDPServer : MonoBehaviour
                             "Jogador 2 conectado: " +
                             jogador2
                         );
-
-                        // ETAPA 15
-                        // RESPOSTA PARA O JOGADOR 2
 
                         EnviarParaJogador(
                             jogador2,
@@ -203,8 +186,6 @@ public class UDPServer : MonoBehaviour
             }
         }
     }
-
-    // ENCERRAR SERVIDOR
 
     void OnApplicationQuit()
     {
