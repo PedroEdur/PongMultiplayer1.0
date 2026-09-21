@@ -219,22 +219,31 @@ public class UDPServer : MonoBehaviour
                     }
                 }
             }
-            catch (Exception e)
+            catch (SocketException e)
             {
-                if (rodando)
-                {
-                    Debug.LogError(
-                        "Erro ao receber: " + e.Message
-                    );
-                }
-                else
+                if (!rodando ||
+                    e.ErrorCode == 10004 ||
+                    e.ErrorCode == 10022 ||
+                    e.ErrorCode == 10053 ||
+                    e.ErrorCode == 10054)
                 {
                     break;
                 }
+
+                Debug.LogError("Erro ao receber: " + e.Message);
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+            catch (Exception e)
+            {
+                if (rodando)
+                    Debug.LogError("Erro ao receber: " + e.Message);
             }
         }
     }
-
+    
     void OnApplicationQuit()
     {
         rodando = false;
