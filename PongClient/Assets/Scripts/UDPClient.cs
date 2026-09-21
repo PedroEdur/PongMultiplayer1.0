@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Collections.Concurrent;
 using UnityEngine;
 
 public class UDPClient : MonoBehaviour
@@ -18,9 +19,37 @@ public class UDPClient : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
+    private ConcurrentQueue<string> mensagensRecebidas =
+        new ConcurrentQueue<string>();
+
     void Start()
     {
         IniciarCliente();
+    }
+
+    void Update()
+    {
+        if (!rodando)
+            return;
+
+        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+            EnviarMensagem("INPUT|UP");
+        else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+            EnviarMensagem("INPUT|DOWN");
+        else
+            EnviarMensagem("INPUT|NONE");
+
+        while (mensagensRecebidas.TryDequeue(out string mensagem))
+        {
+            if (mensagem.StartsWith("STATE|"))
+            {
+                AplicarEstado(mensagem);
+            }
+            else
+            {
+                Debug.Log("Recebido do servidor: " + mensagem);
+            }
+        }
     }
 
     void IniciarCliente()
@@ -28,7 +57,6 @@ public class UDPClient : MonoBehaviour
         try
         {
             cliente = new UdpClient();
-
             rodando = true;
 
             thread = new Thread(ReceberDados);
@@ -49,59 +77,37 @@ public class UDPClient : MonoBehaviour
     {
         try
         {
+            if (cliente == null)
+                return;
+
             byte[] dados = Encoding.UTF8.GetBytes(mensagem);
+            cliente.Send(dados, dados.Length, ipServidor, porta);
 
-            cliente.Send(
-                dados,
-                dados.Length,
-                ipServidor,
-                porta
-            );
-
-            Debug.Log("Enviado: " + mensagem);
+            if (mensagem != "INPUT|NONE")
+                Debug.Log("Enviado: " + mensagem);
         }
         catch (Exception e)
         {
-            Debug.LogError("Erro ao enviar: " + e.Message);
+            if (rodando)
+                Debug.LogError("Erro ao enviar: " + e.Message);
         }
     }
 
     void ReceberDados()
     {
-        IPEndPoint ponto =
-            new IPEndPoint(
-                IPAddress.Any,
-                0
-            );
+        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
 
         while (rodando)
         {
             try
             {
-                byte[] dados =
-                    cliente.Receive(ref ponto);
+                byte[] dados = cliente.Receive(ref ponto);
+                string mensagem = Encoding.UTF8.GetString(dados);
 
-                string mensagem =
-                    Encoding.UTF8.GetString(dados);
-
-                if (mensagem.StartsWith("STATE|"))
-                {
-                    Debug.Log(
-                        "Estado recebido: " +
-                        mensagem
-                    );
-                }
-                else
-                {
-                    Debug.Log(
-                        "Recebido do servidor: " +
-                        mensagem
-                    );
-                }
+                mensagensRecebidas.Enqueue(mensagem);
             }
             catch (SocketException e)
             {
-                // Encerramento normal do socket
                 if (!rodando ||
                     e.ErrorCode == 10004 ||
                     e.ErrorCode == 10022 ||
@@ -110,26 +116,83 @@ public class UDPClient : MonoBehaviour
                     break;
                 }
 
-                Debug.LogError(
-                    "Erro de socket: " +
-                    e.Message
-                );
+                Debug.LogError("Erro ao receber: " + e.Message);
             }
             catch (ObjectDisposedException)
             {
-                // O socket foi fechado
                 break;
             }
             catch (Exception e)
             {
                 if (rodando)
-                {
-                    Debug.LogError(
-                        "Erro ao receber: " +
-                        e.Message
-                    );
-                }
+                    Debug.LogError("Erro ao receber: " + e.Message);
             }
+        }
+    }
+
+    void AplicarEstado(string mensagem)
+    {
+        try
+        {
+            string[] partes = mensagem.Split('|');
+
+            if (partes.Length < 7)
+                return;
+
+            float p1Y = float.Parse(
+                partes[1],
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+            float p2Y = float.Parse(
+                partes[2],
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+            float bolaX = float.Parse(
+                partes[3],
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+            float bolaY = float.Parse(
+                partes[4],
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+            int placar1 = int.Parse(partes[5]);
+            int placar2 = int.Parse(partes[6]);
+
+            if (player1 != null)
+            {
+                Vector3 posicao = player1.position;
+                posicao.y = p1Y;
+                player1.position = posicao;
+            }
+
+            if (player2 != null)
+            {
+                Vector3 posicao = player2.position;
+                posicao.y = p2Y;
+                player2.position = posicao;
+            }
+
+            if (bola != null)
+            {
+                bola.position = new Vector3(
+                    bolaX,
+                    bolaY,
+                    bola.position.z
+                );
+            }
+
+            Debug.Log(
+                "Estado aplicado. Placar: " +
+                placar1 + " x " + placar2
+            );
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Erro ao aplicar estado: " + e.Message);
         }
     }
 
@@ -138,9 +201,14 @@ public class UDPClient : MonoBehaviour
         rodando = false;
 
         if (cliente != null)
+        {
             cliente.Close();
+            cliente = null;
+        }
 
-        if (thread != null)
-            thread.Abort();
+        if (thread != null && thread.IsAlive)
+        {
+            thread.Join(100);
+        }
     }
 }
