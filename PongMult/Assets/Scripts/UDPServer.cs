@@ -20,6 +20,9 @@ public class UDPServer : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
+    private float tempoEstado = 0f;
+    public float intervaloEstado = 0.05f;
+
     private IPEndPoint jogador1;
     private IPEndPoint jogador2;
 
@@ -53,10 +56,18 @@ public class UDPServer : MonoBehaviour
 
     void Update()
     {
-        EnviarEstado();
-
         MoverPlayer2();
+
+        tempoEstado += Time.deltaTime;
+
+        if (tempoEstado >= intervaloEstado)
+        {
+            tempoEstado = 0f;
+
+            EnviarEstado();
+        }
     }
+
     void MoverPlayer2()
     {
         if (player2 == null)
