@@ -23,6 +23,10 @@ public class UDPServer : MonoBehaviour
     private IPEndPoint jogador1;
     private IPEndPoint jogador2;
 
+    private string comandoJogador2 = "INPUT|NONE";
+
+    public float velocidadePlayer2 = 5f;
+
     void Start()
     {
         try
@@ -50,6 +54,35 @@ public class UDPServer : MonoBehaviour
     void Update()
     {
         EnviarEstado();
+
+        MoverPlayer2();
+    }
+    void MoverPlayer2()
+    {
+        if (player2 == null)
+            return;
+
+        Vector3 posicao =
+            player2.position;
+
+        if (comandoJogador2 == "INPUT|UP")
+        {
+            posicao.y +=
+                velocidadePlayer2 * Time.deltaTime;
+        }
+        else if (comandoJogador2 == "INPUT|DOWN")
+        {
+            posicao.y -=
+                velocidadePlayer2 * Time.deltaTime;
+        }
+
+        posicao.y = Mathf.Clamp(
+            posicao.y,
+            -3.5f,
+            3.5f
+        );
+
+        player2.position = posicao;
     }
 
     void EnviarEstado()
@@ -125,6 +158,8 @@ public class UDPServer : MonoBehaviour
 
                 if (mensagem.StartsWith("INPUT|"))
                 {
+                    comandoJogador2 = mensagem;
+
                     Debug.Log(
                         "Comando recebido do jogador: " +
                         mensagem
