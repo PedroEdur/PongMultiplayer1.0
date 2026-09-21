@@ -1,3 +1,4 @@
+
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -7,6 +8,8 @@ using UnityEngine;
 
 public class UDPClient : MonoBehaviour
 {
+    // CONFIGURAÇÃO
+
     public string ipServidor = "127.0.0.1";
     public int porta = 7777;
 
@@ -14,10 +17,38 @@ public class UDPClient : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
+    // INICIAR CLIENTE
+
     void Start()
     {
         IniciarCliente();
     }
+
+    // ETAPA 16
+    // ENVIAR COMANDOS DE MOVIMENTO
+
+    void Update()
+    {
+        if (!rodando)
+            return;
+
+        if (Input.GetKey(KeyCode.W) ||
+            Input.GetKey(KeyCode.UpArrow))
+        {
+            EnviarMensagem("INPUT|UP");
+        }
+        else if (Input.GetKey(KeyCode.S) ||
+                 Input.GetKey(KeyCode.DownArrow))
+        {
+            EnviarMensagem("INPUT|DOWN");
+        }
+        else
+        {
+            EnviarMensagem("INPUT|NONE");
+        }
+    }
+
+    // INICIAR CONEXÃO
 
     void IniciarCliente()
     {
@@ -37,15 +68,20 @@ public class UDPClient : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError("Erro ao iniciar cliente: " + e.Message);
+            Debug.LogError(
+                "Erro ao iniciar cliente: " + e.Message
+            );
         }
     }
+
+    // ENVIAR MENSAGEM
 
     void EnviarMensagem(string mensagem)
     {
         try
         {
-            byte[] dados = Encoding.UTF8.GetBytes(mensagem);
+            byte[] dados =
+                Encoding.UTF8.GetBytes(mensagem);
 
             cliente.Send(
                 dados,
@@ -54,44 +90,91 @@ public class UDPClient : MonoBehaviour
                 porta
             );
 
-            Debug.Log("Enviado: " + mensagem);
+            // Evita poluir o Console com INPUT|NONE
+            if (mensagem != "INPUT|NONE")
+            {
+                Debug.Log("Enviado: " + mensagem);
+            }
         }
         catch (Exception e)
         {
-            Debug.LogError("Erro ao enviar: " + e.Message);
+            if (rodando)
+            {
+                Debug.LogError(
+                    "Erro ao enviar: " + e.Message
+                );
+            }
         }
     }
 
+    // RECEBER DADOS
+
     void ReceberDados()
     {
-        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
+        IPEndPoint ponto =
+            new IPEndPoint(
+                IPAddress.Any,
+                0
+            );
 
         while (rodando)
         {
             try
             {
-                byte[] dados = cliente.Receive(ref ponto);
+                byte[] dados =
+                    cliente.Receive(ref ponto);
 
-                string mensagem = Encoding.UTF8.GetString(dados);
+                string mensagem =
+                    Encoding.UTF8.GetString(dados);
 
-                Debug.Log("Recebido do servidor: " + mensagem);
+                Debug.Log(
+                    "Recebido do servidor: " +
+                    mensagem
+                );
+            }
+            catch (SocketException e)
+            {
+                if (!rodando)
+                    break;
+
+                if (e.ErrorCode == 10004 ||
+                    e.ErrorCode == 10022)
+                {
+                    break;
+                }
+
+                Debug.LogError(
+                    "Erro de socket: " +
+                    e.Message
+                );
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
             }
             catch (Exception e)
             {
                 if (rodando)
-                    Debug.LogError("Erro ao receber: " + e.Message);
+                {
+                    Debug.LogError(
+                        "Erro ao receber: " +
+                        e.Message
+                    );
+                }
             }
         }
     }
+
+    // ENCERRAR CLIENTE
 
     void OnApplicationQuit()
     {
         rodando = false;
 
         if (cliente != null)
+        {
             cliente.Close();
-
-        if (thread != null)
-            thread.Abort();
+            cliente = null;
+        }
     }
 }
