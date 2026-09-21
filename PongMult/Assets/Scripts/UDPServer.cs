@@ -13,9 +13,6 @@ public class UDPServer : MonoBehaviour
     private Thread thread;
     private bool rodando = false;
 
-    private IPEndPoint jogador1;
-    private IPEndPoint jogador2;
-
     void Start()
     {
         IniciarServidor();
@@ -42,65 +39,44 @@ public class UDPServer : MonoBehaviour
 
     void ReceberDados()
     {
-        IPEndPoint ponto =
-            new IPEndPoint(
-                IPAddress.Any,
-                0
-            );
+        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
 
         while (rodando)
         {
             try
             {
-                byte[] dados =
-                    servidor.Receive(ref ponto);
+                byte[] dados = servidor.Receive(ref ponto);
 
-                string mensagem =
-                    Encoding.UTF8.GetString(dados);
+                string mensagem = Encoding.UTF8.GetString(dados);
 
-                Debug.Log(
-                    "Recebido: " +
-                    mensagem +
-                    " de " +
+                Debug.Log("Mensagem recebida: " + mensagem);
+
+                string resposta = "WELCOME";
+
+                byte[] respostaBytes = Encoding.UTF8.GetBytes(resposta);
+
+                servidor.Send(
+                    respostaBytes,
+                    respostaBytes.Length,
                     ponto
                 );
-
-                if (mensagem == "HELLO")
-                {
-                    // PRIMEIRO JOGADOR
-                    if (jogador1 == null)
-                    {
-                        jogador1 = new IPEndPoint(
-                            ponto.Address,
-                            ponto.Port
-                        );
-
-                        Debug.Log(
-                            "Jogador 1 conectado: " +
-                            jogador1
-                        );
-                    }
-
-                    // SEGUNDO JOGADOR
-                    else if (jogador2 == null)
-                    {
-                        jogador2 = new IPEndPoint(
-                            ponto.Address,
-                            ponto.Port
-                        );
-
-                        Debug.Log(
-                            "Jogador 2 conectado: " +
-                            jogador2
-                        );
-                    }
-                }
             }
-            catch
+            catch (Exception e)
             {
-                if (!rodando)
-                    break;
+                if (rodando)
+                    Debug.LogError("Erro ao receber: " + e.Message);
             }
         }
+    }
+
+    void OnApplicationQuit()
+    {
+        rodando = false;
+
+        if (servidor != null)
+            servidor.Close();
+
+        if (thread != null)
+            thread.Abort();
     }
 }
