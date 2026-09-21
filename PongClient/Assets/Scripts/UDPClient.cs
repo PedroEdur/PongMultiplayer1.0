@@ -64,22 +64,57 @@ public class UDPClient : MonoBehaviour
 
     void ReceberDados()
     {
-        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
+        IPEndPoint ponto =
+            new IPEndPoint(
+                IPAddress.Any,
+                0
+            );
 
         while (rodando)
         {
             try
             {
-                byte[] dados = cliente.Receive(ref ponto);
+                byte[] dados =
+                    cliente.Receive(ref ponto);
 
-                string mensagem = Encoding.UTF8.GetString(dados);
+                string mensagem =
+                    Encoding.UTF8.GetString(dados);
 
-                Debug.Log("Recebido do servidor: " + mensagem);
+                Debug.Log(
+                    "Recebido do servidor: " +
+                    mensagem
+                );
+            }
+            catch (SocketException e)
+            {
+                // Encerramento normal do socket
+                if (!rodando ||
+                    e.ErrorCode == 10004 ||
+                    e.ErrorCode == 10022 ||
+                    e.ErrorCode == 10053)
+                {
+                    break;
+                }
+
+                Debug.LogError(
+                    "Erro de socket: " +
+                    e.Message
+                );
+            }
+            catch (ObjectDisposedException)
+            {
+                // O socket foi fechado
+                break;
             }
             catch (Exception e)
             {
                 if (rodando)
-                    Debug.LogError("Erro ao receber: " + e.Message);
+                {
+                    Debug.LogError(
+                        "Erro ao receber: " +
+                        e.Message
+                    );
+                }
             }
         }
     }
