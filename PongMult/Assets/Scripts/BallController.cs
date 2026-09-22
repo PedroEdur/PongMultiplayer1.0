@@ -43,8 +43,12 @@ public class BallController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D colisao)
     {
+        Debug.Log("Trigger detectado: " + colisao.gameObject.name);
+
         if (colisao.gameObject.CompareTag("GoalLeft"))
         {
+            Debug.Log("GoalLeft detectado!");
+
             if (servidor != null)
             {
                 servidor.RegistrarGol(false);
@@ -52,9 +56,10 @@ public class BallController : MonoBehaviour
 
             ResetarBola();
         }
-
         else if (colisao.gameObject.CompareTag("GoalRight"))
         {
+            Debug.Log("GoalRight detectado!");
+
             if (servidor != null)
             {
                 servidor.RegistrarGol(true);
