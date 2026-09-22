@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Collections.Concurrent;
 using UnityEngine;
+using TMPro;
 
 public class UDPClient : MonoBehaviour
 {
@@ -14,6 +15,9 @@ public class UDPClient : MonoBehaviour
     public Transform player1;
     public Transform player2;
     public Transform bola;
+
+    public TextMeshProUGUI textoPlacar1;
+    public TextMeshProUGUI textoPlacar2;
 
     private UdpClient cliente;
     private Thread thread;
@@ -161,6 +165,16 @@ public class UDPClient : MonoBehaviour
 
             int placar1 = int.Parse(partes[5]);
             int placar2 = int.Parse(partes[6]);
+
+            if (textoPlacar1 != null)
+            {
+                textoPlacar1.text = placar1.ToString();
+            }
+
+            if (textoPlacar2 != null)
+            {
+                textoPlacar2.text = placar2.ToString();
+            }
 
             if (player1 != null)
             {
