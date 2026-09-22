@@ -1873,7 +1873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f578566f07d08524092b553dd61b5c5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPServer
-  porta: 7777
+  porta: 10571104
   player1: {fileID: 750379104}
   player2: {fileID: 1545227545}
   bola: {fileID: 1799428422}

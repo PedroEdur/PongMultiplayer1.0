@@ -10,7 +10,7 @@ using UnityEngine;
 public class UDPServer : MonoBehaviour
 {
     [Header("Conexão UDP")]
-    public int porta = 7777;
+    public int porta = 10571104;
 
     [Header("Objetos do jogo")]
     public Transform player1;
