@@ -2344,7 +2344,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8830adc812747894784c0c379c032496, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPClient
-  ipServidor: 127.0.0.1
+  ipServidor: 10.57.1.104
   porta: 7777
   player1: {fileID: 750379104}
   player2: {fileID: 1545227545}
