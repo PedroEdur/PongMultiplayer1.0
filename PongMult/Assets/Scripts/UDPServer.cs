@@ -16,6 +16,22 @@ public class UDPServer : MonoBehaviour
     private int placar1 = 0;
     private int placar2 = 0;
 
+    public void RegistrarGol(bool golDoJogador1)
+    {
+        if (golDoJogador1)
+        {
+            placar1++;
+            Debug.Log("Gol do Jogador 1! Placar: " +
+                      placar1 + " x " + placar2);
+        }
+        else
+        {
+            placar2++;
+            Debug.Log("Gol do Jogador 2! Placar: " +
+                      placar1 + " x " + placar2);
+        }
+    }
+
     private UdpClient servidor;
     private Thread thread;
     private bool rodando = false;

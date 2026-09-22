@@ -1,9 +1,10 @@
-
 using UnityEngine;
 
 public class BallController : MonoBehaviour
 {
     public float velocidade = 5f;
+
+    public UDPServer servidor;
 
     private Vector2 direcao;
     private Rigidbody2D rb;
@@ -42,9 +43,23 @@ public class BallController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D colisao)
     {
-        if (colisao.gameObject.CompareTag("GoalLeft") ||
-            colisao.gameObject.CompareTag("GoalRight"))
+        if (colisao.gameObject.CompareTag("GoalLeft"))
         {
+            if (servidor != null)
+            {
+                servidor.RegistrarGol(false);
+            }
+
+            ResetarBola();
+        }
+
+        else if (colisao.gameObject.CompareTag("GoalRight"))
+        {
+            if (servidor != null)
+            {
+                servidor.RegistrarGol(true);
+            }
+
             ResetarBola();
         }
     }
