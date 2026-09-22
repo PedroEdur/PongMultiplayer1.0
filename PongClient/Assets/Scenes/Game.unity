@@ -2209,11 +2209,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UDPClient
   ipServidor: 127.0.0.1
   porta: 7777
-  player1: {fileID: 0}
-  player2: {fileID: 0}
-  bola: {fileID: 0}
-  textoPlacar1: {fileID: 0}
-  textoPlacar2: {fileID: 0}
+  player1: {fileID: 750379104}
+  player2: {fileID: 1545227545}
+  bola: {fileID: 1799428422}
+  textoPlacar1: {fileID: 2107893379}
+  textoPlacar2: {fileID: 1285572077}
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0

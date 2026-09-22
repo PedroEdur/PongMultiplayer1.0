@@ -1551,7 +1551,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -156, y: 56}
+  m_AnchoredPosition: {x: -151, y: 56}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1410158005
@@ -2346,11 +2346,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UDPClient
   ipServidor: 127.0.0.1
   porta: 7777
-  player1: {fileID: 0}
-  player2: {fileID: 0}
-  bola: {fileID: 0}
-  textoPlacar1: {fileID: 0}
-  textoPlacar2: {fileID: 0}
+  player1: {fileID: 750379104}
+  player2: {fileID: 1545227545}
+  bola: {fileID: 1799428422}
+  textoPlacar1: {fileID: 1706813796}
+  textoPlacar2: {fileID: 1410158005}
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
