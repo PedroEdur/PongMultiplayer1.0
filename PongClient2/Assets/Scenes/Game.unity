@@ -550,7 +550,7 @@ BoxCollider2D:
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
-  m_AutoTiling: 0
+  m_AutoTiling: 1
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
 --- !u!212 &628628919
@@ -1119,7 +1119,7 @@ BoxCollider2D:
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
-  m_AutoTiling: 0
+  m_AutoTiling: 1
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
 --- !u!212 &1277321535
@@ -1889,6 +1889,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UDPClient
   ipServidor: 127.0.0.1
   porta: 7777
+  player1: {fileID: 0}
+  player2: {fileID: 0}
+  bola: {fileID: 0}
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0

@@ -29,7 +29,7 @@ public class UDPServer : MonoBehaviour
     private string comandoJogador2 = "INPUT|NONE";
 
     public float velocidadePlayer2 = 5f;
-
+    public float velocidadePlayer1 = 5f;
     void Start()
     {
         try
@@ -56,6 +56,7 @@ public class UDPServer : MonoBehaviour
 
     void Update()
     {
+        MoverPlayer1();
         MoverPlayer2();
 
         tempoEstado += Time.deltaTime;
@@ -67,35 +68,59 @@ public class UDPServer : MonoBehaviour
             EnviarEstado();
         }
     }
+    void MoverPlayer1()
+    {
+        if (player1 == null)
+            return;
+
+        float movimento = 0f;
+
+        if (Input.GetKey(KeyCode.W))
+        {
+            movimento = 1f;
+        }
+        else if (Input.GetKey(KeyCode.S))
+        {
+            movimento = -1f;
+        }
+
+        Vector3 posicao = player1.position;
+
+        posicao.y += movimento *
+                     velocidadePlayer1 *
+                     Time.deltaTime;
+
+        posicao.y = Mathf.Clamp(posicao.y, -3.5f, 3.5f);
+
+        player1.position = posicao;
+    }
 
     void MoverPlayer2()
     {
         if (player2 == null)
             return;
 
-        Vector3 posicao =
-            player2.position;
+        float movimento = 0f;
 
         if (comandoJogador2 == "INPUT|UP")
         {
-            posicao.y +=
-                velocidadePlayer2 * Time.deltaTime;
+            movimento = 1f;
         }
         else if (comandoJogador2 == "INPUT|DOWN")
         {
-            posicao.y -=
-                velocidadePlayer2 * Time.deltaTime;
+            movimento = -1f;
         }
 
-        posicao.y = Mathf.Clamp(
-            posicao.y,
-            -3.5f,
-            3.5f
-        );
+        Vector3 posicao = player2.position;
+
+        posicao.y += movimento *
+                     velocidadePlayer2 *
+                     Time.deltaTime;
+
+        posicao.y = Mathf.Clamp(posicao.y, -3.5f, 3.5f);
 
         player2.position = posicao;
     }
-
 
     void EnviarEstado()
     {
@@ -143,7 +168,6 @@ public class UDPServer : MonoBehaviour
             mensagem
         );
     }
-
     void ReceberDados()
     {
         IPEndPoint ponto =
@@ -239,11 +263,12 @@ public class UDPServer : MonoBehaviour
             catch (Exception e)
             {
                 if (rodando)
+                {
                     Debug.LogError("Erro ao receber: " + e.Message);
+                }
             }
         }
     }
-    
     void OnApplicationQuit()
     {
         rodando = false;
@@ -251,6 +276,14 @@ public class UDPServer : MonoBehaviour
         if (servidor != null)
         {
             servidor.Close();
+            servidor = null;
         }
+
+        if (thread != null && thread.IsAlive)
+        {
+            thread.Join(500);
+        }
+
+        Debug.Log("Servidor UDP encerrado com segurança.");
     }
 }
