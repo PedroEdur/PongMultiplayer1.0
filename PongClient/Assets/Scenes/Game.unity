@@ -1414,7 +1414,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 374, y: 216}
+  m_AnchoredPosition: {x: 296, y: 82}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1285572077
@@ -2212,6 +2212,8 @@ MonoBehaviour:
   player1: {fileID: 0}
   player2: {fileID: 0}
   bola: {fileID: 0}
+  textoPlacar1: {fileID: 0}
+  textoPlacar2: {fileID: 0}
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
@@ -2430,7 +2432,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -224, y: 210}
+  m_AnchoredPosition: {x: -149, y: 79}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2107893379
