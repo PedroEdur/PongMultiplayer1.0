@@ -1,13 +1,12 @@
-
 using System;
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Collections.Concurrent;
-using System.Globalization;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class UDPClient : MonoBehaviour
 {
@@ -31,13 +30,25 @@ public class UDPClient : MonoBehaviour
     private ConcurrentQueue<string> mensagensRecebidas =
         new ConcurrentQueue<string>();
 
+    private int ultimoPlacar1 = -1;
+    private int ultimoPlacar2 = -1;
+
+    // =====================================================
+    // INICIALIZAÇÃO
+    // =====================================================
+
     void Start()
     {
-        IniciarCliente();
+        ValidarReferenciasVisuais();
 
-        // Placar inicial
         AtualizarPlacarVisual(0, 0);
+
+        IniciarCliente();
     }
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
 
     void Update()
     {
@@ -46,7 +57,8 @@ public class UDPClient : MonoBehaviour
 
         EnviarInput();
 
-        while (mensagensRecebidas.TryDequeue(out string mensagem))
+        while (mensagensRecebidas.TryDequeue(
+            out string mensagem))
         {
             if (mensagem.StartsWith("STATE|"))
             {
@@ -55,13 +67,51 @@ public class UDPClient : MonoBehaviour
             else
             {
                 Debug.Log(
-                    "Recebido do servidor: " + mensagem
+                    "Recebido do servidor: " +
+                    mensagem
                 );
             }
         }
     }
 
+    // =====================================================
+    // VALIDAR REFERÊNCIAS
+    // =====================================================
+
+    void ValidarReferenciasVisuais()
+    {
+        if (textoPlacar1 == null)
+        {
+            Debug.LogError(
+                "ERRO: textoPlacar1 não foi conectado " +
+                "no Inspector."
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "textoPlacar1 conectado corretamente."
+            );
+        }
+
+        if (textoPlacar2 == null)
+        {
+            Debug.LogError(
+                "ERRO: textoPlacar2 não foi conectado " +
+                "no Inspector."
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "textoPlacar2 conectado corretamente."
+            );
+        }
+    }
+
+    // =====================================================
     // ENVIO DE INPUT
+    // =====================================================
 
     void EnviarInput()
     {
@@ -81,7 +131,9 @@ public class UDPClient : MonoBehaviour
         }
     }
 
-    // INICIAR CLIENTE=
+    // =====================================================
+    // INICIAR CLIENTE
+    // =====================================================
 
     void IniciarCliente()
     {
@@ -97,24 +149,32 @@ public class UDPClient : MonoBehaviour
 
             EnviarMensagem("HELLO");
 
-            Debug.Log("Cliente UDP iniciado.");
+            Debug.Log(
+                "Cliente UDP iniciado."
+            );
         }
         catch (Exception e)
         {
             Debug.LogError(
-                "Erro ao iniciar cliente: " + e.Message
+                "Erro ao iniciar cliente: " +
+                e.Message
             );
         }
     }
 
+    // =====================================================
     // ENVIAR MENSAGEM
+    // =====================================================
 
     void EnviarMensagem(string mensagem)
     {
         try
         {
-            if (cliente == null)
+            if (cliente == null ||
+                !rodando)
+            {
                 return;
+            }
 
             byte[] dados =
                 Encoding.UTF8.GetBytes(mensagem);
@@ -128,7 +188,9 @@ public class UDPClient : MonoBehaviour
 
             if (mensagem != "INPUT|NONE")
             {
-                Debug.Log("Enviado: " + mensagem);
+                Debug.Log(
+                    "Enviado: " + mensagem
+                );
             }
         }
         catch (Exception e)
@@ -136,18 +198,24 @@ public class UDPClient : MonoBehaviour
             if (rodando)
             {
                 Debug.LogError(
-                    "Erro ao enviar: " + e.Message
+                    "Erro ao enviar: " +
+                    e.Message
                 );
             }
         }
     }
 
+    // =====================================================
     // RECEBER DADOS
+    // =====================================================
 
     void ReceberDados()
     {
         IPEndPoint ponto =
-            new IPEndPoint(IPAddress.Any, 0);
+            new IPEndPoint(
+                IPAddress.Any,
+                0
+            );
 
         while (rodando)
         {
@@ -173,7 +241,8 @@ public class UDPClient : MonoBehaviour
                 }
 
                 Debug.LogError(
-                    "Erro ao receber: " + e.Message
+                    "Erro ao receber: " +
+                    e.Message
                 );
             }
             catch (ObjectDisposedException)
@@ -185,85 +254,120 @@ public class UDPClient : MonoBehaviour
                 if (rodando)
                 {
                     Debug.LogError(
-                        "Erro ao receber: " + e.Message
+                        "Erro ao receber: " +
+                        e.Message
                     );
                 }
             }
         }
     }
 
+    // =====================================================
     // APLICAR ESTADO RECEBIDO
+    // =====================================================
 
     void AplicarEstado(string mensagem)
     {
         try
         {
+            Debug.Log(
+                "STATE RECEBIDO: " +
+                mensagem
+            );
+
             string[] partes =
                 mensagem.Split('|');
 
-            // Formato esperado:
             // STATE|P1Y|P2Y|BALLX|BALLY|SCORE1|SCORE2
 
             if (partes.Length < 7)
             {
                 Debug.LogWarning(
-                    "Estado recebido está incompleto: " +
+                    "Estado incompleto: " +
                     mensagem
                 );
 
                 return;
             }
 
-            // Posição do Player 1
-            float p1Y = float.Parse(
+            bool p1Valido = float.TryParse(
                 partes[1],
-                CultureInfo.InvariantCulture
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out float p1Y
             );
 
-            // Posição do Player 2
-            float p2Y = float.Parse(
+            bool p2Valido = float.TryParse(
                 partes[2],
-                CultureInfo.InvariantCulture
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out float p2Y
             );
 
-            // Posição X da bola
-            float bolaX = float.Parse(
+            bool bolaXValida = float.TryParse(
                 partes[3],
-                CultureInfo.InvariantCulture
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out float bolaX
             );
 
-            // Posição Y da bola
-            float bolaY = float.Parse(
+            bool bolaYValida = float.TryParse(
                 partes[4],
-                CultureInfo.InvariantCulture
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out float bolaY
             );
 
-            // Placar do Player 1
-            int placar1 = int.Parse(
+            bool placar1Valido = int.TryParse(
                 partes[5],
-                CultureInfo.InvariantCulture
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int placar1
             );
 
-            // Placar do Player 2
-            int placar2 = int.Parse(
+            bool placar2Valido = int.TryParse(
                 partes[6],
-                CultureInfo.InvariantCulture
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int placar2
             );
 
-            Debug.Log(
-                "PLACAR RECEBIDO DO SERVIDOR: " +
-                placar1 + " x " + placar2
-            );
+            if (!p1Valido ||
+                !p2Valido ||
+                !bolaXValida ||
+                !bolaYValida ||
+                !placar1Valido ||
+                !placar2Valido)
+            {
+                Debug.LogError(
+                    "Não foi possível interpretar " +
+                    "o estado recebido: " +
+                    mensagem
+                );
 
-            // ATUALIZAR PLACAR
+                return;
+            }
 
+            if (placar1 != ultimoPlacar1 ||
+                placar2 != ultimoPlacar2)
+            {
+                Debug.Log(
+                    "PLACAR RECEBIDO DO SERVIDOR: " +
+                    placar1 + " x " + placar2
+                );
+
+                ultimoPlacar1 = placar1;
+                ultimoPlacar2 = placar2;
+            }
+
+            // Atualizar Canvas na thread principal.
             AtualizarPlacarVisual(
                 placar1,
                 placar2
             );
 
-            // ATUALIZAR PLAYER 1
-   
+            // Atualizar Player 1.
+
             if (player1 != null)
             {
                 Vector3 posicao =
@@ -274,7 +378,7 @@ public class UDPClient : MonoBehaviour
                 player1.position = posicao;
             }
 
-            // ATUALIZAR PLAYER 2
+            // Atualizar Player 2.
 
             if (player2 != null)
             {
@@ -286,7 +390,7 @@ public class UDPClient : MonoBehaviour
                 player2.position = posicao;
             }
 
-            // ATUALIZAR BOLA
+            // Atualizar bola.
 
             if (bola != null)
             {
@@ -296,18 +400,6 @@ public class UDPClient : MonoBehaviour
                     bola.position.z
                 );
             }
-
-            Debug.Log(
-                "Estado aplicado. Placar: " +
-                placar1 + " x " + placar2
-            );
-        }
-        catch (FormatException e)
-        {
-            Debug.LogError(
-                "Erro de formato no estado recebido: " +
-                e.Message
-            );
         }
         catch (Exception e)
         {
@@ -318,51 +410,47 @@ public class UDPClient : MonoBehaviour
         }
     }
 
+    // =====================================================
     // ATUALIZAR PLACAR VISUAL
+    // =====================================================
 
     void AtualizarPlacarVisual(
         int placar1,
         int placar2
     )
     {
-        if (textoPlacar1 != null)
-        {
-            textoPlacar1.text =
-                placar1.ToString();
-
-            Debug.Log(
-                "Texto Placar 1 atualizado: " +
-                textoPlacar1.text
-            );
-        }
-        else
+        if (textoPlacar1 == null ||
+            textoPlacar2 == null)
         {
             Debug.LogError(
-                "Texto Placar 1 não está conectado " +
-                "no Inspector!"
+                "Não é possível atualizar o placar: " +
+                "referência do Canvas ausente."
             );
+
+            return;
         }
 
-        if (textoPlacar2 != null)
-        {
-            textoPlacar2.text =
-                placar2.ToString();
+        textoPlacar1.text =
+            placar1.ToString(
+                CultureInfo.InvariantCulture
+            );
 
-            Debug.Log(
-                "Texto Placar 2 atualizado: " +
-                textoPlacar2.text
+        textoPlacar2.text =
+            placar2.ToString(
+                CultureInfo.InvariantCulture
             );
-        }
-        else
-        {
-            Debug.LogError(
-                "Texto Placar 2 não está conectado " +
-                "no Inspector!"
-            );
-        }
+
+        Debug.Log(
+            "CANVAS ATUALIZADO: " +
+            textoPlacar1.text +
+            " x " +
+            textoPlacar2.text
+        );
     }
 
+    // =====================================================
     // ENCERRAR CLIENTE
+    // =====================================================
 
     void OnApplicationQuit()
     {

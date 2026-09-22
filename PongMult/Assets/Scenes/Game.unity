@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 119673819}
   - component: {fileID: 119673821}
   m_Layer: 0
-  m_Name: Wall baixo
+  m_Name: WallBottom
   m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -270,7 +270,7 @@ GameObject:
   - component: {fileID: 373143892}
   - component: {fileID: 373143894}
   m_Layer: 0
-  m_Name: Wall cima
+  m_Name: WallTop
   m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1595,7 +1595,7 @@ GameObject:
   - component: {fileID: 1799428423}
   m_Layer: 0
   m_Name: Ball
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1751,6 +1751,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallController
   velocidade: 9.41
+  servidor: {fileID: 1942356320}
 --- !u!1 &1939860766
 GameObject:
   m_ObjectHideFlags: 0
@@ -1876,8 +1877,11 @@ MonoBehaviour:
   player1: {fileID: 750379104}
   player2: {fileID: 1545227545}
   bola: {fileID: 1799428422}
-  intervaloEstado: 0.05
+  velocidadePlayer1: 5
   velocidadePlayer2: 5
+  intervaloEstado: 0.05
+  placar1: 0
+  placar2: 0
 --- !u!4 &1942356321
 Transform:
   m_ObjectHideFlags: 0

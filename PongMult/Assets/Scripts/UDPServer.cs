@@ -1,15 +1,15 @@
 
 using System;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Globalization;
 using UnityEngine;
 
 public class UDPServer : MonoBehaviour
 {
-    [Header("Configuração UDP")]
+    [Header("Conexão UDP")]
     public int porta = 7777;
 
     [Header("Objetos do jogo")]
@@ -17,16 +17,16 @@ public class UDPServer : MonoBehaviour
     public Transform player2;
     public Transform bola;
 
-    [Header("Placar")]
-    private int placar1 = 0;
-    private int placar2 = 0;
-
     [Header("Velocidade dos jogadores")]
     public float velocidadePlayer1 = 5f;
     public float velocidadePlayer2 = 5f;
 
     [Header("Envio de estado")]
     public float intervaloEstado = 0.05f;
+
+    [Header("Placar")]
+    public int placar1 = 0;
+    public int placar2 = 0;
 
     private UdpClient servidor;
     private Thread thread;
@@ -39,7 +39,11 @@ public class UDPServer : MonoBehaviour
 
     private string comandoJogador2 = "INPUT|NONE";
 
-    // INICIAR SERVIDOR
+    private readonly object bloqueioRede = new object();
+
+    // =====================================================
+    // INICIALIZAÇÃO
+    // =====================================================
 
     void Start()
     {
@@ -65,10 +69,15 @@ public class UDPServer : MonoBehaviour
         }
     }
 
+    // =====================================================
     // UPDATE
+    // =====================================================
 
     void Update()
     {
+        if (!rodando)
+            return;
+
         MoverPlayer1();
         MoverPlayer2();
 
@@ -82,34 +91,9 @@ public class UDPServer : MonoBehaviour
         }
     }
 
-    // REGISTRAR GOL
-
-    public void RegistrarGol(bool golDoJogador1)
-    {
-        if (golDoJogador1)
-        {
-            placar1++;
-
-            Debug.Log(
-                "Gol do Jogador 1! Placar: " +
-                placar1 + " x " + placar2
-            );
-        }
-        else
-        {
-            placar2++;
-
-            Debug.Log(
-                "Gol do Jogador 2! Placar: " +
-                placar1 + " x " + placar2
-            );
-        }
-
-        // Envia imediatamente o placar atualizado
-        EnviarEstado();
-    }
-
-    // MOVER PLAYER 1
+    // =====================================================
+    // MOVIMENTO DO PLAYER 1
+    // =====================================================
 
     void MoverPlayer1()
     {
@@ -142,7 +126,9 @@ public class UDPServer : MonoBehaviour
         player1.position = posicao;
     }
 
-    // MOVER PLAYER 2
+    // =====================================================
+    // MOVIMENTO DO PLAYER 2
+    // =====================================================
 
     void MoverPlayer2()
     {
@@ -175,19 +161,64 @@ public class UDPServer : MonoBehaviour
         player2.position = posicao;
     }
 
-    // ENVIAR ESTADO
+    // =====================================================
+    // REGISTRAR GOL
+    // =====================================================
 
-    void EnviarEstado()
+    public void RegistrarGol(bool golDoJogador1)
     {
+        if (!rodando)
+        {
+            Debug.LogWarning(
+                "Gol ignorado: servidor não está ativo."
+            );
+
+            return;
+        }
+
+        if (golDoJogador1)
+        {
+            placar1++;
+
+            Debug.Log(
+                "GOL DO JOGADOR 1! Placar atual: " +
+                placar1 + " x " + placar2
+            );
+        }
+        else
+        {
+            placar2++;
+
+            Debug.Log(
+                "GOL DO JOGADOR 2! Placar atual: " +
+                placar1 + " x " + placar2
+            );
+        }
+
+        // Envia o placar imediatamente após o gol.
+        EnviarEstado();
+    }
+
+    // =====================================================
+    // MONTAR E ENVIAR ESTADO
+    // =====================================================
+
+    public void EnviarEstado()
+    {
+        if (!rodando)
+            return;
+
         if (player1 == null ||
             player2 == null ||
             bola == null)
         {
+            Debug.LogWarning(
+                "Não foi possível enviar estado: " +
+                "player1, player2 ou bola não configurado."
+            );
+
             return;
         }
-
-        // Usa ponto decimal para compatibilidade
-        // com o CultureInfo.InvariantCulture do cliente
 
         string mensagem =
             "STATE|" +
@@ -210,18 +241,17 @@ public class UDPServer : MonoBehaviour
                 CultureInfo.InvariantCulture
             );
 
-        EnviarParaJogador(
-            jogador1,
-            mensagem
+        Debug.Log(
+            "ESTADO ENVIADO: " + mensagem
         );
 
-        EnviarParaJogador(
-            jogador2,
-            mensagem
-        );
+        EnviarParaJogador(jogador1, mensagem);
+        EnviarParaJogador(jogador2, mensagem);
     }
 
-    // ENVIAR PARA UM JOGADOR
+    // =====================================================
+    // ENVIAR PARA UM CLIENTE
+    // =====================================================
 
     void EnviarParaJogador(
         IPEndPoint jogador,
@@ -239,29 +269,33 @@ public class UDPServer : MonoBehaviour
             byte[] dados =
                 Encoding.UTF8.GetBytes(mensagem);
 
-            servidor.Send(
-                dados,
-                dados.Length,
-                jogador
-            );
-
-            Debug.Log(
-                "Estado enviado: " + mensagem
-            );
+            lock (bloqueioRede)
+            {
+                if (servidor != null)
+                {
+                    servidor.Send(
+                        dados,
+                        dados.Length,
+                        jogador
+                    );
+                }
+            }
         }
         catch (Exception e)
         {
             if (rodando)
             {
                 Debug.LogError(
-                    "Erro ao enviar estado: " +
+                    "Erro ao enviar para jogador: " +
                     e.Message
                 );
             }
         }
     }
 
+    // =====================================================
     // RECEBER DADOS
+    // =====================================================
 
     void ReceberDados()
     {
@@ -288,21 +322,22 @@ public class UDPServer : MonoBehaviour
                     ponto
                 );
 
-                if (mensagem.StartsWith("INPUT|"))
-                {
-                    // O input do jogador 2 é processado
-                    // pelo servidor no Update
-                    comandoJogador2 = mensagem;
-
-                    Debug.Log(
-                        "Comando recebido: " +
-                        mensagem
-                    );
-                }
-
                 if (mensagem == "HELLO")
                 {
                     RegistrarJogador(ponto);
+                }
+                else if (mensagem.StartsWith("INPUT|"))
+                {
+                    // Somente o jogador 2 controla o Player 2.
+                    if (MesmoJogador(ponto, jogador2))
+                    {
+                        comandoJogador2 = mensagem;
+
+                        Debug.Log(
+                            "Input do jogador 2: " +
+                            mensagem
+                        );
+                    }
                 }
             }
             catch (SocketException e)
@@ -337,16 +372,44 @@ public class UDPServer : MonoBehaviour
             }
         }
     }
+
+    // =====================================================
     // REGISTRAR JOGADORES
+    // =====================================================
 
     void RegistrarJogador(IPEndPoint ponto)
     {
+        if (MesmoJogador(ponto, jogador1))
+        {
+            EnviarParaJogador(
+                jogador1,
+                "WELCOME|PLAYER1"
+            );
+
+            Debug.Log(
+                "HELLO repetido do jogador 1."
+            );
+
+            return;
+        }
+
+        if (MesmoJogador(ponto, jogador2))
+        {
+            EnviarParaJogador(
+                jogador2,
+                "WELCOME|PLAYER2"
+            );
+
+            Debug.Log(
+                "HELLO repetido do jogador 2."
+            );
+
+            return;
+        }
+
         if (jogador1 == null)
         {
-            jogador1 = new IPEndPoint(
-                ponto.Address,
-                ponto.Port
-            );
+            jogador1 = CriarEndpoint(ponto);
 
             Debug.Log(
                 "Jogador 1 conectado: " +
@@ -358,13 +421,9 @@ public class UDPServer : MonoBehaviour
                 "WELCOME|PLAYER1"
             );
         }
-        else if (jogador2 == null &&
-                 !MesmoJogador(ponto, jogador1))
+        else if (jogador2 == null)
         {
-            jogador2 = new IPEndPoint(
-                ponto.Address,
-                ponto.Port
-            );
+            jogador2 = CriarEndpoint(ponto);
 
             Debug.Log(
                 "Jogador 2 conectado: " +
@@ -378,33 +437,35 @@ public class UDPServer : MonoBehaviour
         }
         else
         {
-            Debug.Log(
-                "Jogador já conectado ou limite atingido: " +
-                ponto
+            Debug.LogWarning(
+                "Servidor já possui dois jogadores."
             );
         }
     }
 
-    // COMPARAR JOGADORES
-
-    bool MesmoJogador(
-        IPEndPoint jogadorA,
-        IPEndPoint jogadorB
-    )
+    IPEndPoint CriarEndpoint(IPEndPoint ponto)
     {
-        if (jogadorA == null ||
-            jogadorB == null)
-        {
-            return false;
-        }
-
-        return jogadorA.Address.Equals(
-            jogadorB.Address
-        ) &&
-        jogadorA.Port == jogadorB.Port;
+        return new IPEndPoint(
+            ponto.Address,
+            ponto.Port
+        );
     }
 
+    bool MesmoJogador(
+        IPEndPoint a,
+        IPEndPoint b
+    )
+    {
+        if (a == null || b == null)
+            return false;
+
+        return a.Address.Equals(b.Address) &&
+               a.Port == b.Port;
+    }
+
+    // =====================================================
     // ENCERRAR SERVIDOR
+    // =====================================================
 
     void OnApplicationQuit()
     {
