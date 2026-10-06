@@ -2264,15 +2264,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPClient
   ipServidor: 10.57.1.104
-  porta: 7777
-  player1: {fileID: 750379104}
-  player2: {fileID: 1545227545}
-  bola: {fileID: 1799428422}
-  rbPlayer1: {fileID: 750379107}
-  rbPlayer2: {fileID: 1545227548}
-  textoPlacar1: {fileID: 2107893379}
-  textoPlacar2: {fileID: 1285572077}
-  intervaloHello: 1
+  porta: 5001
+  player1: {fileID: 750379102}
+  player2: {fileID: 1545227543}
+  velocidade: 5
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
