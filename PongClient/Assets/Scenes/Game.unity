@@ -2268,6 +2268,8 @@ MonoBehaviour:
   player1: {fileID: 750379102}
   player2: {fileID: 1545227543}
   velocidade: 5
+  textoPlacarPlayer1: {fileID: 2107893379}
+  textoPlacarPlayer2: {fileID: 1285572077}
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
