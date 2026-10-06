@@ -4,12 +4,20 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+<<<<<<< HEAD
 using TMPro;
+=======
+using System.Collections.Concurrent;
+>>>>>>> parent of 1ec71a0 (placares client1)
 
 public class UDPClient : MonoBehaviour
 {
     [Header("Servidor")]
     public string ipServidor = "10.57.1.104";
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of 1ec71a0 (placares client1)
     public int porta = 5001;
 
     [Header("Jogadores")]
@@ -19,16 +27,20 @@ public class UDPClient : MonoBehaviour
     [Header("Bola")]
     public GameObject bola;
 
+<<<<<<< HEAD
     [Header("Placar")]
     public TMP_Text textoPlacarPlayer1;
     public TMP_Text textoPlacarPlayer2;
 
+=======
+>>>>>>> parent of 1ec71a0 (placares client1)
     private UdpClient client;
     private IPEndPoint servidorEP;
     private Thread receiveThread;
 
     private bool running = true;
 
+<<<<<<< HEAD
     private int meuId = 0;
 
     private int placarPlayer1 = 0;
@@ -48,6 +60,14 @@ public class UDPClient : MonoBehaviour
     // =====================================================
     // INICIALIZAÇÃO
     // =====================================================
+=======
+    private ConcurrentQueue<string> mensagens =
+        new ConcurrentQueue<string>();
+
+    // =========================
+    // INICIAR CLIENTE
+    // =========================
+>>>>>>> parent of 1ec71a0 (placares client1)
 
     void Start()
     {
@@ -67,20 +87,38 @@ public class UDPClient : MonoBehaviour
         receiveThread.IsBackground = true;
         receiveThread.Start();
 
+<<<<<<< HEAD
         Debug.Log(
             "Cliente UDP iniciado."
         );
 
+=======
+        // Informa ao servidor
+        // que este cliente entrou
+>>>>>>> parent of 1ec71a0 (placares client1)
         EnviarMensagem(
             "HELLO"
         );
 
+<<<<<<< HEAD
         AtualizarPlacar();
+=======
+        Debug.Log(
+            "Cliente UDP iniciado."
+        );
+
+        Debug.Log(
+            "Servidor: "
+            + ipServidor
+            + ":"
+            + porta
+        );
+>>>>>>> parent of 1ec71a0 (placares client1)
     }
 
-    // =====================================================
+    // =========================
     // UPDATE
-    // =====================================================
+    // =========================
 
     void Update()
     {
@@ -88,7 +126,16 @@ public class UDPClient : MonoBehaviour
         // ATUALIZA JOGADORES
         // -------------------------------------------------
 
+<<<<<<< HEAD
         if (recebeuPlayer1)
+=======
+        // Processa mensagens recebidas
+        while (
+            mensagens.TryDequeue(
+                out string mensagem
+            )
+        )
+>>>>>>> parent of 1ec71a0 (placares client1)
         {
             if (player1 != null)
             {
@@ -170,11 +217,202 @@ public class UDPClient : MonoBehaviour
                 mensagem
             );
         }
+<<<<<<< HEAD
     }
 
     // =====================================================
     // RECEBER DADOS
     // =====================================================
+=======
+
+        // Move o jogador local
+        MoverJogador();
+
+        // Envia a posição para o servidor
+        if (myId != -1)
+        {
+            EnviarPosicao();
+        }
+    }
+
+    // =========================
+    // MOVIMENTAÇÃO
+    // =========================
+
+    void MoverJogador()
+    {
+        GameObject meuPlayer =
+            MeuPlayer();
+
+        if (meuPlayer == null)
+            return;
+
+        float movimento = 0f;
+
+        // W ou seta para cima
+        if (
+            Input.GetKey(
+                KeyCode.W
+            )
+            ||
+            Input.GetKey(
+                KeyCode.UpArrow
+            )
+        )
+        {
+            movimento = 1f;
+        }
+
+        // S ou seta para baixo
+        if (
+            Input.GetKey(
+                KeyCode.S
+            )
+            ||
+            Input.GetKey(
+                KeyCode.DownArrow
+            )
+        )
+        {
+            movimento = -1f;
+        }
+
+        Vector3 posicao =
+            meuPlayer.transform.position;
+
+        posicao.y +=
+            movimento *
+            velocidade *
+            Time.deltaTime;
+
+        // Limite da tela
+        posicao.y =
+            Mathf.Clamp(
+                posicao.y,
+                -3.5f,
+                3.5f
+            );
+
+        meuPlayer.transform.position =
+            posicao;
+    }
+
+    // =========================
+    // DESCOBRIR MEU PLAYER
+    // =========================
+
+    GameObject MeuPlayer()
+    {
+        if (myId == 1)
+        {
+            return player1;
+        }
+
+        if (myId == 2)
+        {
+            return player2;
+        }
+
+        return null;
+    }
+
+    // =========================
+    // PEGAR PLAYER PELO ID
+    // =========================
+
+    GameObject PlayerPorId(
+        int id
+    )
+    {
+        if (id == 1)
+        {
+            return player1;
+        }
+
+        if (id == 2)
+        {
+            return player2;
+        }
+
+        return null;
+    }
+
+    // =========================
+    // ENVIAR POSIÇÃO
+    // =========================
+
+    void EnviarPosicao()
+    {
+        GameObject meuPlayer =
+            MeuPlayer();
+
+        if (meuPlayer == null)
+            return;
+
+        float x =
+            meuPlayer.transform.position.x;
+
+        float y =
+            meuPlayer.transform.position.y;
+
+        string msg =
+            "POS:"
+            + x.ToString(
+                "F2",
+                System.Globalization.CultureInfo.InvariantCulture
+            )
+            + ";"
+            + y.ToString(
+                "F2",
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+        EnviarMensagem(
+            msg
+        );
+    }
+
+    // =========================
+    // ENVIAR MENSAGEM UDP
+    // =========================
+
+    void EnviarMensagem(
+        string mensagem
+    )
+    {
+        try
+        {
+            byte[] data =
+                Encoding.UTF8.GetBytes(
+                    mensagem
+                );
+
+            client.Send(
+                data,
+                data.Length
+            );
+
+            Debug.Log(
+                "Enviado: "
+                + mensagem
+            );
+        }
+        catch (Exception e)
+        {
+            if (running)
+            {
+                Debug.LogError(
+                    "Erro ao enviar: "
+                    + e.Message
+                );
+            }
+        }
+    }
+
+    // =========================
+    // RECEBER UDP
+    // =========================
+>>>>>>> parent of 1ec71a0 (placares client1)
 
     void ReceiveData()
     {
@@ -224,17 +462,23 @@ public class UDPClient : MonoBehaviour
         }
     }
 
-    // =====================================================
-    // PROCESSAR MENSAGEM
-    // =====================================================
+    // =========================
+    // PROCESSAR MENSAGENS
+    // =========================
 
     void ProcessarMensagem(
         string mensagem
     )
     {
+<<<<<<< HEAD
         // -------------------------------------------------
         // ID
         // -------------------------------------------------
+=======
+        // =========================
+        // RECEBEU ID
+        // =========================
+>>>>>>> parent of 1ec71a0 (placares client1)
 
         if (
             mensagem.StartsWith(
@@ -261,6 +505,7 @@ public class UDPClient : MonoBehaviour
             return;
         }
 
+<<<<<<< HEAD
         // -------------------------------------------------
         // PLAYER
         // -------------------------------------------------
@@ -298,6 +543,11 @@ public class UDPClient : MonoBehaviour
         // -------------------------------------------------
         // BOLA
         // -------------------------------------------------
+=======
+        // =========================
+        // RECEBEU POSIÇÃO DE PLAYER
+        // =========================
+>>>>>>> parent of 1ec71a0 (placares client1)
 
         if (
             mensagem.StartsWith(
@@ -305,14 +555,96 @@ public class UDPClient : MonoBehaviour
             )
         )
         {
+<<<<<<< HEAD
             ProcessarBola(
                 mensagem
+=======
+            string dados =
+                mensagem.Substring(
+                    7
+                );
+
+            string[] partes =
+                dados.Split(';');
+
+            if (partes.Length != 3)
+                return;
+
+            // ID
+            if (
+                !int.TryParse(
+                    partes[0],
+                    out int id
+                )
+            )
+            {
+                return;
+            }
+
+            // X
+            if (
+                !float.TryParse(
+                    partes[1],
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out float x
+                )
+            )
+            {
+                return;
+            }
+
+            // Y
+            if (
+                !float.TryParse(
+                    partes[2],
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out float y
+                )
+            )
+            {
+                return;
+            }
+
+            GameObject jogador =
+                PlayerPorId(
+                    id
+                );
+
+            if (jogador == null)
+                return;
+
+            // Não atualiza pela rede
+            // o próprio jogador local.
+            if (id == myId)
+                return;
+
+            Vector3 posicao =
+                jogador.transform.position;
+
+            posicao.x = x;
+
+            posicao.y = y;
+
+            jogador.transform.position =
+                posicao;
+
+            Debug.Log(
+                "[Cliente] Player "
+                + id
+                + " atualizado: X="
+                + x
+                + " Y="
+                + y
+>>>>>>> parent of 1ec71a0 (placares client1)
             );
 
             return;
         }
     }
 
+<<<<<<< HEAD
     // =====================================================
     // PROCESSAR JOGADOR
     // =====================================================
@@ -539,6 +871,11 @@ public class UDPClient : MonoBehaviour
     // =====================================================
     // ENCERRAR
     // =====================================================
+=======
+    // =========================
+    // ENCERRAR CLIENTE
+    // =========================
+>>>>>>> parent of 1ec71a0 (placares client1)
 
     void OnApplicationQuit()
     {

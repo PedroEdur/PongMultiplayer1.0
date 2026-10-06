@@ -1579,7 +1579,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -193, y: 224}
+  m_AnchoredPosition: {x: -151, y: 56}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1410158005
@@ -1990,7 +1990,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 263, y: 222}
+  m_AnchoredPosition: {x: 305, y: 54}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1706813796
@@ -2404,9 +2404,13 @@ MonoBehaviour:
   porta: 5001
   player1: {fileID: 750379102}
   player2: {fileID: 1545227543}
+<<<<<<< HEAD
   bola: {fileID: 1799428418}
   textoPlacarPlayer1: {fileID: 1706813796}
   textoPlacarPlayer2: {fileID: 1410158005}
+=======
+  velocidade: 5
+>>>>>>> parent of 1ec71a0 (placares client1)
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
