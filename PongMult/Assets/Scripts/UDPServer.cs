@@ -1,171 +1,205 @@
+using UnityEngine;
 using System;
-using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using UnityEngine;
+using System.Collections.Generic;
 
 public class UDPServer : MonoBehaviour
 {
-    public int porta = 7777;
-    public Transform player1;
-    public Transform player2;
-    public Transform bola;
-    public float velocidadePlayer1 = 5f;
-    public float velocidadePlayer2 = 5f;
-    public float intervaloEstado = 0.05f;
-    public int placar1 = 0;
-    public int placar2 = 0;
+    [Header("Servidor")]
+    public int porta = 5001;
 
-    private UdpClient servidor;
-    private Thread thread;
-    private bool rodando = false;
-    private float tempoEstado = 0f;
-    private IPEndPoint jogador1;
-    private IPEndPoint jogador2;
-    private string comandoJogador2 = "INPUT|NONE";
-    private readonly object bloqueioRede = new object();
+    [Header("Placar")]
+    public int placarJogador1 = 0;
+    public int placarJogador2 = 0;
+
+    private UdpClient server;
+    private IPEndPoint anyEP;
+    private Thread receiveThread;
+
+    private Dictionary<string, int> clientIds =
+        new Dictionary<string, int>();
+
+    private Dictionary<int, IPEndPoint> clients =
+        new Dictionary<int, IPEndPoint>();
+
+    private int nextId = 1;
+
+    private bool running = true;
+
+    // =====================================================
+    // INICIALIZAÇÃO
+    // =====================================================
 
     void Start()
     {
-        try
-        {
-            servidor = new UdpClient(porta);
-            rodando = true;
-            thread = new Thread(ReceberDados);
-            thread.IsBackground = true;
-            thread.Start();
-            Debug.Log("Servidor UDP iniciado na porta " + porta);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Erro ao iniciar servidor: " + e.Message);
-        }
+        server = new UdpClient(porta);
+
+        anyEP = new IPEndPoint(
+            IPAddress.Any,
+            0
+        );
+
+        receiveThread = new Thread(
+            ReceiveData
+        );
+
+        receiveThread.IsBackground = true;
+
+        receiveThread.Start();
+
+        Debug.Log(
+            "Servidor UDP iniciado na porta " +
+            porta
+        );
     }
 
-    void Update()
+    // =====================================================
+    // RECEBER DADOS
+    // =====================================================
+
+    void ReceiveData()
     {
-        if (!rodando) return;
-        MoverPlayer1();
-        MoverPlayer2();
-
-        tempoEstado += Time.deltaTime;
-        if (tempoEstado >= intervaloEstado)
-        {
-            tempoEstado = 0f;
-            EnviarEstado();
-        }
-    }
-
-    void MoverPlayer1()
-    {
-        if (player1 == null) return;
-        float movimento = 0f;
-
-        if (Input.GetKey(KeyCode.W)) movimento = 1f;
-        else if (Input.GetKey(KeyCode.S)) movimento = -1f;
-
-        Vector3 posicao = player1.position;
-        posicao.y += movimento * velocidadePlayer1 * Time.deltaTime;
-        posicao.y = Mathf.Clamp(posicao.y, -3.5f, 3.5f);
-        player1.position = posicao;
-    }
-
-    void MoverPlayer2()
-    {
-        if (player2 == null) return;
-        float movimento = 0f;
-
-        if (comandoJogador2 == "INPUT|UP") movimento = 1f;
-        else if (comandoJogador2 == "INPUT|DOWN") movimento = -1f;
-
-        Vector3 posicao = player2.position;
-        posicao.y += movimento * velocidadePlayer2 * Time.deltaTime;
-        posicao.y = Mathf.Clamp(posicao.y, -3.5f, 3.5f);
-        player2.position = posicao;
-    }
-
-    public void RegistrarGol(bool golDoJogador1)
-    {
-        if (!rodando) return;
-
-        if (golDoJogador1) placar1++;
-        else placar2++;
-
-        Debug.Log("Placar: " + placar1 + " x " + placar2);
-        EnviarEstado();
-    }
-
-    public void EnviarEstado()
-    {
-        if (!rodando || player1 == null || player2 == null || bola == null)
-            return;
-
-        string mensagem =
-            "STATE|" +
-            player1.position.y.ToString(CultureInfo.InvariantCulture) + "|" +
-            player2.position.y.ToString(CultureInfo.InvariantCulture) + "|" +
-            bola.position.x.ToString(CultureInfo.InvariantCulture) + "|" +
-            bola.position.y.ToString(CultureInfo.InvariantCulture) + "|" +
-            placar1.ToString(CultureInfo.InvariantCulture) + "|" +
-            placar2.ToString(CultureInfo.InvariantCulture);
-
-        EnviarParaJogador(jogador1, mensagem);
-        EnviarParaJogador(jogador2, mensagem);
-    }
-
-    void EnviarParaJogador(IPEndPoint jogador, string mensagem)
-    {
-        if (jogador == null || servidor == null) return;
-
-        try
-        {
-            byte[] dados = Encoding.UTF8.GetBytes(mensagem);
-
-            lock (bloqueioRede)
-            {
-                if (servidor != null)
-                    servidor.Send(dados, dados.Length, jogador);
-            }
-        }
-        catch (Exception e)
-        {
-            if (rodando) Debug.LogError("Erro ao enviar: " + e.Message);
-        }
-    }
-
-    void ReceberDados()
-    {
-        IPEndPoint ponto = new IPEndPoint(IPAddress.Any, 0);
-
-        while (rodando)
+        while (running)
         {
             try
             {
-                byte[] dados = servidor.Receive(ref ponto);
-                string mensagem = Encoding.UTF8.GetString(dados);
+                byte[] data =
+                    server.Receive(
+                        ref anyEP
+                    );
 
-                Debug.Log("Recebido: " + mensagem + " de " + ponto);
+                string msg =
+                    Encoding.UTF8.GetString(
+                        data
+                    );
 
-                if (mensagem == "HELLO")
-                    RegistrarJogador(ponto);
-                else if (mensagem.StartsWith("INPUT|"))
+                string key =
+                    anyEP.Address.ToString()
+                    + ":"
+                    + anyEP.Port;
+
+                // =================================================
+                // NOVO CLIENTE
+                // =================================================
+
+                if (!clientIds.ContainsKey(key))
                 {
-                    if (MesmoJogador(ponto, jogador2))
+                    int id = nextId++;
+
+                    clientIds[key] = id;
+
+                    clients[id] =
+                        new IPEndPoint(
+                            anyEP.Address,
+                            anyEP.Port
+                        );
+
+                    string assignMsg =
+                        "ASSIGN:" + id;
+
+                    byte[] assignData =
+                        Encoding.UTF8.GetBytes(
+                            assignMsg
+                        );
+
+                    server.Send(
+                        assignData,
+                        assignData.Length,
+                        anyEP
+                    );
+
+                    Debug.Log(
+                        "Novo cliente conectado: "
+                        + key
+                        + " -> ID "
+                        + id
+                    );
+
+                    // Envia também o placar atual
+                    EnviarPlacarParaCliente(
+                        anyEP
+                    );
+                }
+
+                int clientId =
+                    clientIds[key];
+
+                // Atualiza endereço do cliente
+                clients[clientId] =
+                    new IPEndPoint(
+                        anyEP.Address,
+                        anyEP.Port
+                    );
+
+                // =================================================
+                // RECEBER POSIÇÃO
+                // =================================================
+
+                if (msg.StartsWith("POS:"))
+                {
+                    string coords =
+                        msg.Substring(4);
+
+                    string[] parts =
+                        coords.Split(';');
+
+                    if (parts.Length == 2)
                     {
-                        comandoJogador2 = mensagem;
-                        Debug.Log("Input jogador 2: " + mensagem);
+                        if (
+                            float.TryParse(
+                                parts[0],
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out float x
+                            )
+                            &&
+                            float.TryParse(
+                                parts[1],
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out float y
+                            )
+                        )
+                        {
+                            Debug.Log(
+                                "[Servidor] ID "
+                                + clientId
+                                + " -> X: "
+                                + x
+                                + " Y: "
+                                + y
+                            );
+
+                            string resposta =
+                                "PLAYER:"
+                                + clientId
+                                + ";"
+                                + x.ToString(
+                                    "F2",
+                                    System.Globalization.CultureInfo.InvariantCulture
+                                )
+                                + ";"
+                                + y.ToString(
+                                    "F2",
+                                    System.Globalization.CultureInfo.InvariantCulture
+                                );
+
+                            Broadcast(
+                                resposta
+                            );
+                        }
                     }
                 }
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
-                if (!rodando || e.ErrorCode == 10004 || e.ErrorCode == 10022 ||
-                    e.ErrorCode == 10053 || e.ErrorCode == 10054)
+                if (!running)
+                {
                     break;
-
-                if (rodando) Debug.LogError("Erro ao receber: " + e.Message);
+                }
             }
             catch (ObjectDisposedException)
             {
@@ -173,70 +207,191 @@ public class UDPServer : MonoBehaviour
             }
             catch (Exception e)
             {
-                if (rodando) Debug.LogError("Erro ao receber: " + e.Message);
+                if (running)
+                {
+                    Debug.LogError(
+                        "Erro no servidor: "
+                        + e.Message
+                    );
+                }
             }
         }
     }
 
-    void RegistrarJogador(IPEndPoint ponto)
+    // =====================================================
+    // REGISTRAR GOL
+    // =====================================================
+
+    public void RegistrarGol(
+        bool golDoJogador1
+    )
     {
-        if (MesmoJogador(ponto, jogador1))
+        if (golDoJogador1)
         {
-            jogador1 = CriarEndpoint(ponto);
-            EnviarParaJogador(jogador1, "WELCOME|PLAYER1");
-            Debug.Log("Jogador 1 reconectado: " + jogador1);
-            return;
+            placarJogador1++;
+
+            Debug.Log(
+                "GOL DO JOGADOR 1!"
+            );
+        }
+        else
+        {
+            placarJogador2++;
+
+            Debug.Log(
+                "GOL DO JOGADOR 2!"
+            );
         }
 
-        if (MesmoJogador(ponto, jogador2))
-        {
-            jogador2 = CriarEndpoint(ponto);
-            EnviarParaJogador(jogador2, "WELCOME|PLAYER2");
-            Debug.Log("Jogador 2 reconectado: " + jogador2);
-            return;
-        }
+        Debug.Log(
+            "PLACAR: "
+            + placarJogador1
+            + " x "
+            + placarJogador2
+        );
 
-        if (jogador1 == null)
-        {
-            jogador1 = CriarEndpoint(ponto);
-            EnviarParaJogador(jogador1, "WELCOME|PLAYER1");
-            Debug.Log("Jogador 1 conectado: " + jogador1);
-            return;
-        }
-
-        if (jogador2 == null)
-        {
-            jogador2 = CriarEndpoint(ponto);
-            EnviarParaJogador(jogador2, "WELCOME|PLAYER2");
-            Debug.Log("Jogador 2 conectado: " + jogador2);
-            return;
-        }
-
-        Debug.LogWarning("Servidor já possui dois jogadores.");
+        EnviarPlacar();
     }
 
-    IPEndPoint CriarEndpoint(IPEndPoint ponto)
+    // =====================================================
+    // ENVIAR PLACAR
+    // =====================================================
+
+    void EnviarPlacar()
     {
-        return new IPEndPoint(ponto.Address, ponto.Port);
+        string mensagem =
+            "SCORE:"
+            + placarJogador1
+            + ";"
+            + placarJogador2;
+
+        Broadcast(
+            mensagem
+        );
     }
 
-    bool MesmoJogador(IPEndPoint a, IPEndPoint b)
+    // =====================================================
+    // ENVIAR PLACAR PARA UM CLIENTE
+    // =====================================================
+
+    void EnviarPlacarParaCliente(
+        IPEndPoint destino
+    )
     {
-        if (a == null || b == null) return false;
-        return a.Address.Equals(b.Address);
+        string mensagem =
+            "SCORE:"
+            + placarJogador1
+            + ";"
+            + placarJogador2;
+
+        byte[] data =
+            Encoding.UTF8.GetBytes(
+                mensagem
+            );
+
+        try
+        {
+            server.Send(
+                data,
+                data.Length,
+                destino
+            );
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(
+                "Erro ao enviar placar: "
+                + e.Message
+            );
+        }
     }
+
+    // =====================================================
+    // ENVIAR PARA TODOS OS CLIENTES
+    // =====================================================
+
+    void Broadcast(
+        string mensagem
+    )
+    {
+        byte[] data =
+            Encoding.UTF8.GetBytes(
+                mensagem
+            );
+
+        foreach (
+            KeyValuePair<int, IPEndPoint> client
+            in clients
+        )
+        {
+            try
+            {
+                server.Send(
+                    data,
+                    data.Length,
+                    client.Value
+                );
+            }
+            catch
+            {
+                // Ignora erro individual
+            }
+        }
+    }
+
+    // =====================================================
+    // RESETAR PLACAR
+    // =====================================================
+
+    public void ResetarPlacar()
+    {
+        placarJogador1 = 0;
+        placarJogador2 = 0;
+
+        Debug.Log(
+            "Placar resetado."
+        );
+
+        EnviarPlacar();
+    }
+
+    // =====================================================
+    // ENCERRAR SERVIDOR
+    // =====================================================
 
     void OnApplicationQuit()
     {
-        rodando = false;
+        running = false;
 
-        if (servidor != null)
+        if (server != null)
         {
-            servidor.Close();
-            servidor = null;
+            try
+            {
+                server.Close();
+            }
+            catch
+            {
+            }
+
+            server = null;
         }
 
-        if (thread != null && thread.IsAlive)
-            thread.Join(500);
+        if (
+            receiveThread != null &&
+            receiveThread.IsAlive
+        )
+        {
+            try
+            {
+                receiveThread.Join(200);
+            }
+            catch
+            {
+            }
+        }
+
+        Debug.Log(
+            "Servidor UDP encerrado."
+        );
     }
 }
