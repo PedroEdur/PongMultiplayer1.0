@@ -1607,7 +1607,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 16.03
+  orthographic size: 9.1
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2270,6 +2270,7 @@ MonoBehaviour:
   bola: {fileID: 1799428422}
   textoPlacar1: {fileID: 2107893379}
   textoPlacar2: {fileID: 1285572077}
+  intervaloHello: 1
 --- !u!1 &1963072424
 GameObject:
   m_ObjectHideFlags: 0
