@@ -84,21 +84,21 @@ public class BallController : MonoBehaviour
     // DETECTAR GOL
     // =====================================================
 
-    void OnTriggerEnter2D(Collider2D colisao)
+   void OnTriggerEnter2D(Collider2D colisao)
     {
+        Debug.Log("BOLA ENTROU EM: " + colisao.gameObject.name);
+
         if (golEmProcessamento)
             return;
 
         if (colisao.CompareTag("GoalLeft"))
         {
-            // A bola entrou no gol esquerdo.
-            // O jogador 2 marcou.
+            Debug.Log("GOL NO GOAL LEFT!");
             ProcessarGol(false);
         }
         else if (colisao.CompareTag("GoalRight"))
         {
-            // A bola entrou no gol direito.
-            // O jogador 1 marcou.
+            Debug.Log("GOL NO GOAL RIGHT!");
             ProcessarGol(true);
         }
     }

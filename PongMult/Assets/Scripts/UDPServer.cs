@@ -47,7 +47,6 @@ public class UDPServer : MonoBehaviour
         );
 
         receiveThread.IsBackground = true;
-
         receiveThread.Start();
 
         Debug.Log(
@@ -118,7 +117,7 @@ public class UDPServer : MonoBehaviour
                         + id
                     );
 
-                    // Envia também o placar atual
+                    // Envia o placar atual
                     EnviarPlacarParaCliente(
                         anyEP
                     );
@@ -127,7 +126,6 @@ public class UDPServer : MonoBehaviour
                 int clientId =
                     clientIds[key];
 
-                // Atualiza endereço do cliente
                 clients[clientId] =
                     new IPEndPoint(
                         anyEP.Address,
@@ -135,7 +133,7 @@ public class UDPServer : MonoBehaviour
                     );
 
                 // =================================================
-                // RECEBER POSIÇÃO
+                // RECEBER POSIÇÃO DO JOGADOR
                 // =================================================
 
                 if (msg.StartsWith("POS:"))
@@ -164,15 +162,6 @@ public class UDPServer : MonoBehaviour
                             )
                         )
                         {
-                            Debug.Log(
-                                "[Servidor] ID "
-                                + clientId
-                                + " -> X: "
-                                + x
-                                + " Y: "
-                                + y
-                            );
-
                             string resposta =
                                 "PLAYER:"
                                 + clientId
@@ -216,6 +205,31 @@ public class UDPServer : MonoBehaviour
                 }
             }
         }
+    }
+
+    // =====================================================
+    // ENVIAR POSIÇÃO DA BOLA
+    // =====================================================
+
+    public void EnviarPosicaoBola(
+        Vector2 posicao
+    )
+    {
+        string mensagem =
+            "BALL:"
+            + posicao.x.ToString(
+                "F2",
+                System.Globalization.CultureInfo.InvariantCulture
+            )
+            + ";"
+            + posicao.y.ToString(
+                "F2",
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+
+        Broadcast(
+            mensagem
+        );
     }
 
     // =====================================================
@@ -271,7 +285,7 @@ public class UDPServer : MonoBehaviour
     }
 
     // =====================================================
-    // ENVIAR PLACAR PARA UM CLIENTE
+    // ENVIAR PLACAR PARA CLIENTE
     // =====================================================
 
     void EnviarPlacarParaCliente(
@@ -307,7 +321,7 @@ public class UDPServer : MonoBehaviour
     }
 
     // =====================================================
-    // ENVIAR PARA TODOS OS CLIENTES
+    // ENVIAR PARA TODOS
     // =====================================================
 
     void Broadcast(

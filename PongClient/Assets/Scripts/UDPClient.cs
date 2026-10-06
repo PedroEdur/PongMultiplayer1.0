@@ -4,70 +4,60 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Collections.Concurrent;
 using TMPro;
 
 public class UDPClient : MonoBehaviour
 {
     [Header("Servidor")]
-    public string ipServidor = " 10.57.1.104";
-
+    public string ipServidor = "10.57.1.104";
     public int porta = 5001;
 
-    [Header("Players")]
+    [Header("Jogadores")]
     public GameObject player1;
-
     public GameObject player2;
 
-    [Header("Movimento")]
-    public float velocidade = 5f;
+    [Header("Bola")]
+    public GameObject bola;
 
     [Header("Placar")]
     public TMP_Text textoPlacarPlayer1;
-
     public TMP_Text textoPlacarPlayer2;
 
     private UdpClient client;
-
-    private IPEndPoint serverEP;
-
+    private IPEndPoint servidorEP;
     private Thread receiveThread;
-
-    private int myId = -1;
 
     private bool running = true;
 
-    private ConcurrentQueue<string> mensagens =
-        new ConcurrentQueue<string>();
-
-    // =====================================================
-    // PLACAR LOCAL
-    // =====================================================
+    private int meuId = 0;
 
     private int placarPlayer1 = 0;
-
     private int placarPlayer2 = 0;
 
+    // Posição dos jogadores recebida da rede
+    private Vector2 posPlayer1;
+    private Vector2 posPlayer2;
+
+    private bool recebeuPlayer1 = false;
+    private bool recebeuPlayer2 = false;
+
+    // Posição da bola recebida da rede
+    private Vector2 posicaoBola;
+    private bool recebeuBola = false;
+
     // =====================================================
-    // START
+    // INICIALIZAÇÃO
     // =====================================================
 
     void Start()
     {
-        client =
-            new UdpClient();
+        client = new UdpClient();
 
-        serverEP =
+        servidorEP =
             new IPEndPoint(
-                IPAddress.Parse(
-                    ipServidor
-                ),
+                IPAddress.Parse(ipServidor),
                 porta
             );
-
-        client.Connect(
-            serverEP
-        );
 
         receiveThread =
             new Thread(
@@ -75,25 +65,17 @@ public class UDPClient : MonoBehaviour
             );
 
         receiveThread.IsBackground = true;
-
         receiveThread.Start();
+
+        Debug.Log(
+            "Cliente UDP iniciado."
+        );
 
         EnviarMensagem(
             "HELLO"
         );
 
         AtualizarPlacar();
-
-        Debug.Log(
-            "Cliente UDP iniciado."
-        );
-
-        Debug.Log(
-            "Servidor: "
-            + ipServidor
-            + ":"
-            + porta
-        );
     }
 
     // =====================================================
@@ -102,201 +84,96 @@ public class UDPClient : MonoBehaviour
 
     void Update()
     {
-        if (!running)
-            return;
+        // -------------------------------------------------
+        // ATUALIZA JOGADORES
+        // -------------------------------------------------
 
-        while (
-            mensagens.TryDequeue(
-                out string mensagem
-            )
-        )
+        if (recebeuPlayer1)
         {
-            ProcessarMensagem(
+            if (player1 != null)
+            {
+                player1.transform.position =
+                    new Vector3(
+                        posPlayer1.x,
+                        posPlayer1.y,
+                        player1.transform.position.z
+                    );
+            }
+
+            recebeuPlayer1 = false;
+        }
+
+        if (recebeuPlayer2)
+        {
+            if (player2 != null)
+            {
+                player2.transform.position =
+                    new Vector3(
+                        posPlayer2.x,
+                        posPlayer2.y,
+                        player2.transform.position.z
+                    );
+            }
+
+            recebeuPlayer2 = false;
+        }
+
+        // -------------------------------------------------
+        // ATUALIZA BOLA
+        // -------------------------------------------------
+
+        if (recebeuBola)
+        {
+            if (bola != null)
+            {
+                bola.transform.position =
+                    new Vector3(
+                        posicaoBola.x,
+                        posicaoBola.y,
+                        bola.transform.position.z
+                    );
+            }
+
+            recebeuBola = false;
+        }
+
+        // -------------------------------------------------
+        // ENVIA POSIÇÃO DO MEU JOGADOR
+        // -------------------------------------------------
+
+        GameObject meuPlayer = null;
+
+        if (meuId == 1)
+        {
+            meuPlayer = player1;
+        }
+        else if (meuId == 2)
+        {
+            meuPlayer = player2;
+        }
+
+        if (meuPlayer != null)
+        {
+            string mensagem =
+                "POS:"
+                + meuPlayer.transform.position.x.ToString(
+                    "F2",
+                    System.Globalization.CultureInfo.InvariantCulture
+                )
+                + ";"
+                + meuPlayer.transform.position.y.ToString(
+                    "F2",
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
+
+            EnviarMensagem(
                 mensagem
             );
         }
-
-        MoverJogador();
-
-        if (myId != -1)
-        {
-            EnviarPosicao();
-        }
     }
 
     // =====================================================
-    // MOVIMENTAÇÃO
-    // =====================================================
-
-    void MoverJogador()
-    {
-        GameObject meuPlayer =
-            MeuPlayer();
-
-        if (meuPlayer == null)
-            return;
-
-        float movimento = 0f;
-
-        if (
-            Input.GetKey(
-                KeyCode.W
-            )
-            ||
-            Input.GetKey(
-                KeyCode.UpArrow
-            )
-        )
-        {
-            movimento = 1f;
-        }
-
-        if (
-            Input.GetKey(
-                KeyCode.S
-            )
-            ||
-            Input.GetKey(
-                KeyCode.DownArrow
-            )
-        )
-        {
-            movimento = -1f;
-        }
-
-        Vector3 posicao =
-            meuPlayer.transform.position;
-
-        posicao.y +=
-            movimento *
-            velocidade *
-            Time.deltaTime;
-
-        posicao.y =
-            Mathf.Clamp(
-                posicao.y,
-                -3.5f,
-                3.5f
-            );
-
-        meuPlayer.transform.position =
-            posicao;
-    }
-
-    // =====================================================
-    // MEU PLAYER
-    // =====================================================
-
-    GameObject MeuPlayer()
-    {
-        if (myId == 1)
-        {
-            return player1;
-        }
-
-        if (myId == 2)
-        {
-            return player2;
-        }
-
-        return null;
-    }
-
-    // =====================================================
-    // PLAYER PELO ID
-    // =====================================================
-
-    GameObject PlayerPorId(
-        int id
-    )
-    {
-        if (id == 1)
-        {
-            return player1;
-        }
-
-        if (id == 2)
-        {
-            return player2;
-        }
-
-        return null;
-    }
-
-    // =====================================================
-    // ENVIAR POSIÇÃO
-    // =====================================================
-
-    void EnviarPosicao()
-    {
-        GameObject meuPlayer =
-            MeuPlayer();
-
-        if (meuPlayer == null)
-            return;
-
-        float x =
-            meuPlayer.transform.position.x;
-
-        float y =
-            meuPlayer.transform.position.y;
-
-        string msg =
-            "POS:"
-            + x.ToString(
-                "F2",
-                System.Globalization.CultureInfo.InvariantCulture
-            )
-            + ";"
-            + y.ToString(
-                "F2",
-                System.Globalization.CultureInfo.InvariantCulture
-            );
-
-        EnviarMensagem(
-            msg
-        );
-    }
-
-    // =====================================================
-    // ENVIAR MENSAGEM
-    // =====================================================
-
-    void EnviarMensagem(
-        string mensagem
-    )
-    {
-        try
-        {
-            byte[] data =
-                Encoding.UTF8.GetBytes(
-                    mensagem
-                );
-
-            client.Send(
-                data,
-                data.Length
-            );
-
-            Debug.Log(
-                "Enviado: "
-                + mensagem
-            );
-        }
-        catch (Exception e)
-        {
-            if (running)
-            {
-                Debug.LogError(
-                    "Erro ao enviar: "
-                    + e.Message
-                );
-            }
-        }
-    }
-
-    // =====================================================
-    // RECEBER UDP
+    // RECEBER DADOS
     // =====================================================
 
     void ReceiveData()
@@ -316,13 +193,13 @@ public class UDPClient : MonoBehaviour
                         ref remoteEP
                     );
 
-                string msg =
+                string mensagem =
                     Encoding.UTF8.GetString(
                         data
                     );
 
-                mensagens.Enqueue(
-                    msg
+                ProcessarMensagem(
+                    mensagem
                 );
             }
             catch (SocketException)
@@ -339,7 +216,7 @@ public class UDPClient : MonoBehaviour
                 if (running)
                 {
                     Debug.LogError(
-                        "Erro ao receber: "
+                        "Erro no cliente: "
                         + e.Message
                     );
                 }
@@ -355,9 +232,9 @@ public class UDPClient : MonoBehaviour
         string mensagem
     )
     {
-        // =================================================
-        // RECEBEU ID
-        // =================================================
+        // -------------------------------------------------
+        // ID
+        // -------------------------------------------------
 
         if (
             mensagem.StartsWith(
@@ -366,31 +243,44 @@ public class UDPClient : MonoBehaviour
         )
         {
             string idTexto =
-                mensagem.Substring(
-                    7
-                );
+                mensagem.Substring(7);
 
             if (
                 int.TryParse(
                     idTexto,
-                    out int id
+                    out meuId
                 )
             )
             {
-                myId = id;
-
                 Debug.Log(
-                    "[Cliente] Recebi ID = "
-                    + myId
+                    "[Cliente] Meu ID: "
+                    + meuId
                 );
             }
 
             return;
         }
 
-        // =================================================
-        // RECEBEU PLACAR
-        // =================================================
+        // -------------------------------------------------
+        // PLAYER
+        // -------------------------------------------------
+
+        if (
+            mensagem.StartsWith(
+                "PLAYER:"
+            )
+        )
+        {
+            ProcessarJogador(
+                mensagem
+            );
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // PLACAR
+        // -------------------------------------------------
 
         if (
             mensagem.StartsWith(
@@ -405,90 +295,145 @@ public class UDPClient : MonoBehaviour
             return;
         }
 
-        // =================================================
-        // RECEBEU POSIÇÃO
-        // =================================================
+        // -------------------------------------------------
+        // BOLA
+        // -------------------------------------------------
 
         if (
             mensagem.StartsWith(
-                "PLAYER:"
+                "BALL:"
             )
         )
         {
-            string dados =
-                mensagem.Substring(
-                    7
-                );
-
-            string[] partes =
-                dados.Split(';');
-
-            if (partes.Length != 3)
-                return;
-
-            if (
-                !int.TryParse(
-                    partes[0],
-                    out int id
-                )
-            )
-            {
-                return;
-            }
-
-            if (
-                !float.TryParse(
-                    partes[1],
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out float x
-                )
-            )
-            {
-                return;
-            }
-
-            if (
-                !float.TryParse(
-                    partes[2],
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out float y
-                )
-            )
-            {
-                return;
-            }
-
-            GameObject jogador =
-                PlayerPorId(
-                    id
-                );
-
-            if (jogador == null)
-                return;
-
-            if (id == myId)
-                return;
-
-            Vector3 posicao =
-                jogador.transform.position;
-
-            posicao.x = x;
-            posicao.y = y;
-
-            jogador.transform.position =
-                posicao;
-
-            Debug.Log(
-                "[Cliente] Player "
-                + id
-                + " atualizado: X="
-                + x
-                + " Y="
-                + y
+            ProcessarBola(
+                mensagem
             );
+
+            return;
         }
+    }
+
+    // =====================================================
+    // PROCESSAR JOGADOR
+    // =====================================================
+
+    void ProcessarJogador(
+        string mensagem
+    )
+    {
+        string dados =
+            mensagem.Substring(7);
+
+        string[] partes =
+            dados.Split(';');
+
+        if (partes.Length != 3)
+            return;
+
+        if (
+            !int.TryParse(
+                partes[0],
+                out int id
+            )
+        )
+        {
+            return;
+        }
+
+        if (
+            !float.TryParse(
+                partes[1],
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out float x
+            )
+        )
+        {
+            return;
+        }
+
+        if (
+            !float.TryParse(
+                partes[2],
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out float y
+            )
+        )
+        {
+            return;
+        }
+
+        if (id == 1)
+        {
+            posPlayer1 =
+                new Vector2(
+                    x,
+                    y
+                );
+
+            recebeuPlayer1 = true;
+        }
+        else if (id == 2)
+        {
+            posPlayer2 =
+                new Vector2(
+                    x,
+                    y
+                );
+
+            recebeuPlayer2 = true;
+        }
+    }
+
+    // =====================================================
+    // PROCESSAR BOLA
+    // =====================================================
+
+    void ProcessarBola(
+        string mensagem
+    )
+    {
+        string dados =
+            mensagem.Substring(5);
+
+        string[] partes =
+            dados.Split(';');
+
+        if (partes.Length != 2)
+            return;
+
+        if (
+            !float.TryParse(
+                partes[0],
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out float x
+            )
+        )
+        {
+            return;
+        }
+
+        if (
+            !float.TryParse(
+                partes[1],
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out float y
+            )
+        )
+        {
+            return;
+        }
+
+        posicaoBola =
+            new Vector2(
+                x,
+                y
+            );
+
+        recebeuBola = true;
     }
 
     // =====================================================
@@ -500,9 +445,7 @@ public class UDPClient : MonoBehaviour
     )
     {
         string dados =
-            mensagem.Substring(
-                6
-            );
+            mensagem.Substring(6);
 
         string[] partes =
             dados.Split(';');
@@ -541,18 +484,22 @@ public class UDPClient : MonoBehaviour
     }
 
     // =====================================================
-    // ATUALIZAR TEXTO DO PLACAR
+    // ATUALIZAR PLACAR
     // =====================================================
 
     void AtualizarPlacar()
     {
-        if (textoPlacarPlayer1 != null)
+        if (
+            textoPlacarPlayer1 != null
+        )
         {
             textoPlacarPlayer1.text =
                 placarPlayer1.ToString();
         }
 
-        if (textoPlacarPlayer2 != null)
+        if (
+            textoPlacarPlayer2 != null
+        )
         {
             textoPlacarPlayer2.text =
                 placarPlayer2.ToString();
@@ -560,7 +507,37 @@ public class UDPClient : MonoBehaviour
     }
 
     // =====================================================
-    // ENCERRAR CLIENTE
+    // ENVIAR MENSAGEM
+    // =====================================================
+
+    void EnviarMensagem(
+        string mensagem
+    )
+    {
+        try
+        {
+            byte[] data =
+                Encoding.UTF8.GetBytes(
+                    mensagem
+                );
+
+            client.Send(
+                data,
+                data.Length,
+                servidorEP
+            );
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(
+                "Erro ao enviar mensagem: "
+                + e.Message
+            );
+        }
+    }
+
+    // =====================================================
+    // ENCERRAR
     // =====================================================
 
     void OnApplicationQuit()
