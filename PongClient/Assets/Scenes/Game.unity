@@ -2268,8 +2268,8 @@ MonoBehaviour:
   player1: {fileID: 750379104}
   player2: {fileID: 1545227545}
   bola: {fileID: 1799428422}
-  rbPlayer1: {fileID: 0}
-  rbPlayer2: {fileID: 0}
+  rbPlayer1: {fileID: 750379107}
+  rbPlayer2: {fileID: 1545227548}
   textoPlacar1: {fileID: 2107893379}
   textoPlacar2: {fileID: 1285572077}
   intervaloHello: 1
