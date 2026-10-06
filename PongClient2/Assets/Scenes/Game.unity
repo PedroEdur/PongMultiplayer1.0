@@ -2405,6 +2405,8 @@ MonoBehaviour:
   player1: {fileID: 750379104}
   player2: {fileID: 1545227545}
   bola: {fileID: 1799428422}
+  rbPlayer1: {fileID: 750379107}
+  rbPlayer2: {fileID: 1545227548}
   textoPlacar1: {fileID: 1706813796}
   textoPlacar2: {fileID: 1410158005}
   intervaloHello: 1
