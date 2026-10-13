@@ -5,201 +5,97 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using System.Globalization;
 
 public class UDPServer : MonoBehaviour
 {
-    [Header("Servidor")]
+    [Header("Conexão UDP")]
     public int porta = 5001;
 
     [Header("Placar")]
-    public int placarJogador1 = 0;
-    public int placarJogador2 = 0;
+    public int placar1 = 0;
+    public int placar2 = 0;
 
     private UdpClient server;
-    private IPEndPoint anyEP;
     private Thread receiveThread;
+    private volatile bool running = false;
 
-    private Dictionary<string, int> clientIds =
-        new Dictionary<string, int>();
-
-    private Dictionary<int, IPEndPoint> clients =
-        new Dictionary<int, IPEndPoint>();
-
+    private readonly object clientsLock = new object();
+    private readonly Dictionary<string, int> clientIds = new Dictionary<string, int>();
+    private readonly Dictionary<int, IPEndPoint> clients = new Dictionary<int, IPEndPoint>();
     private int nextId = 1;
-
-    private bool running = true;
-
-    // =====================================================
-    // INICIALIZAÇÃO
-    // =====================================================
 
     void Start()
     {
-        server = new UdpClient(porta);
-
-        anyEP = new IPEndPoint(
-            IPAddress.Any,
-            0
-        );
-
-        receiveThread = new Thread(
-            ReceiveData
-        );
-
-        receiveThread.IsBackground = true;
-
-        receiveThread.Start();
-
-        Debug.Log(
-            "Servidor UDP iniciado na porta " +
-            porta
-        );
+        try
+        {
+            server = new UdpClient(porta);
+            running = true;
+            receiveThread = new Thread(ReceiveData);
+            receiveThread.IsBackground = true;
+            receiveThread.Start();
+            Debug.Log("Servidor UDP iniciado na porta " + porta);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Erro ao iniciar servidor UDP: " + e.Message);
+        }
     }
 
-    // =====================================================
-    // RECEBER DADOS
-    // =====================================================
-
-    void ReceiveData()
+    private void ReceiveData()
     {
         while (running)
         {
             try
             {
-                byte[] data =
-                    server.Receive(
-                        ref anyEP
-                    );
+                IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+                byte[] data = server.Receive(ref remoteEP);
+                string msg = Encoding.UTF8.GetString(data);
+                string key = remoteEP.Address.ToString() + ":" + remoteEP.Port;
+                int clientId;
 
-                string msg =
-                    Encoding.UTF8.GetString(
-                        data
-                    );
-
-                string key =
-                    anyEP.Address.ToString()
-                    + ":"
-                    + anyEP.Port;
-
-                // =================================================
-                // NOVO CLIENTE
-                // =================================================
-
-                if (!clientIds.ContainsKey(key))
+                lock (clientsLock)
                 {
-                    int id = nextId++;
-
-                    clientIds[key] = id;
-
-                    clients[id] =
-                        new IPEndPoint(
-                            anyEP.Address,
-                            anyEP.Port
-                        );
-
-                    string assignMsg =
-                        "ASSIGN:" + id;
-
-                    byte[] assignData =
-                        Encoding.UTF8.GetBytes(
-                            assignMsg
-                        );
-
-                    server.Send(
-                        assignData,
-                        assignData.Length,
-                        anyEP
-                    );
-
-                    Debug.Log(
-                        "Novo cliente conectado: "
-                        + key
-                        + " -> ID "
-                        + id
-                    );
-
-                    // Envia também o placar atual
-                    EnviarPlacarParaCliente(
-                        anyEP
-                    );
+                    if (!clientIds.TryGetValue(key, out clientId))
+                    {
+                        clientId = nextId++;
+                        clientIds[key] = clientId;
+                        clients[clientId] = new IPEndPoint(remoteEP.Address, remoteEP.Port);
+                        SendTo(remoteEP, "ASSIGN:" + clientId);
+                        Debug.Log("Novo cliente " + key + " recebeu ID " + clientId);
+                    }
+                    else
+                    {
+                        clients[clientId] = new IPEndPoint(remoteEP.Address, remoteEP.Port);
+                    }
                 }
-
-                int clientId =
-                    clientIds[key];
-
-                // Atualiza endereço do cliente
-                clients[clientId] =
-                    new IPEndPoint(
-                        anyEP.Address,
-                        anyEP.Port
-                    );
-
-                // =================================================
-                // RECEBER POSIÇÃO
-                // =================================================
 
                 if (msg.StartsWith("POS:"))
                 {
-                    string coords =
-                        msg.Substring(4);
+                    string[] parts = msg.Substring(4).Split(';');
+                    if (parts.Length != 2) continue;
 
-                    string[] parts =
-                        coords.Split(';');
+                    float x;
+                    float y;
+                    bool xValido = float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out x);
+                    bool yValido = float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out y);
 
-                    if (parts.Length == 2)
+                    if (xValido && yValido)
                     {
-                        if (
-                            float.TryParse(
-                                parts[0],
-                                System.Globalization.NumberStyles.Float,
-                                System.Globalization.CultureInfo.InvariantCulture,
-                                out float x
-                            )
-                            &&
-                            float.TryParse(
-                                parts[1],
-                                System.Globalization.NumberStyles.Float,
-                                System.Globalization.CultureInfo.InvariantCulture,
-                                out float y
-                            )
-                        )
-                        {
-                            Debug.Log(
-                                "[Servidor] ID "
-                                + clientId
-                                + " -> X: "
-                                + x
-                                + " Y: "
-                                + y
-                            );
-
-                            string resposta =
-                                "PLAYER:"
-                                + clientId
-                                + ";"
-                                + x.ToString(
-                                    "F2",
-                                    System.Globalization.CultureInfo.InvariantCulture
-                                )
-                                + ";"
-                                + y.ToString(
-                                    "F2",
-                                    System.Globalization.CultureInfo.InvariantCulture
-                                );
-
-                            Broadcast(
-                                resposta
-                            );
-                        }
+                        string resposta = "PLAYER:" + clientId + ";" +
+                            x.ToString("F2", CultureInfo.InvariantCulture) + ";" +
+                            y.ToString("F2", CultureInfo.InvariantCulture);
+                        Broadcast(resposta);
                     }
+                }
+                else if (msg == "HELLO")
+                {
+                    // O ID já é atribuído acima; não é necessário fazer mais nada.
                 }
             }
             catch (SocketException)
             {
-                if (!running)
-                {
-                    break;
-                }
+                if (!running) break;
             }
             catch (ObjectDisposedException)
             {
@@ -207,191 +103,61 @@ public class UDPServer : MonoBehaviour
             }
             catch (Exception e)
             {
-                if (running)
-                {
-                    Debug.LogError(
-                        "Erro no servidor: "
-                        + e.Message
-                    );
-                }
+                if (running) Debug.LogError("Erro ao receber dados UDP: " + e.Message);
             }
         }
     }
 
-    // =====================================================
-    // REGISTRAR GOL
-    // =====================================================
-
-    public void RegistrarGol(
-        bool golDoJogador1
-    )
+    private void SendTo(IPEndPoint endpoint, string message)
     {
-        if (golDoJogador1)
-        {
-            placarJogador1++;
-
-            Debug.Log(
-                "GOL DO JOGADOR 1!"
-            );
-        }
-        else
-        {
-            placarJogador2++;
-
-            Debug.Log(
-                "GOL DO JOGADOR 2!"
-            );
-        }
-
-        Debug.Log(
-            "PLACAR: "
-            + placarJogador1
-            + " x "
-            + placarJogador2
-        );
-
-        EnviarPlacar();
-    }
-
-    // =====================================================
-    // ENVIAR PLACAR
-    // =====================================================
-
-    void EnviarPlacar()
-    {
-        string mensagem =
-            "SCORE:"
-            + placarJogador1
-            + ";"
-            + placarJogador2;
-
-        Broadcast(
-            mensagem
-        );
-    }
-
-    // =====================================================
-    // ENVIAR PLACAR PARA UM CLIENTE
-    // =====================================================
-
-    void EnviarPlacarParaCliente(
-        IPEndPoint destino
-    )
-    {
-        string mensagem =
-            "SCORE:"
-            + placarJogador1
-            + ";"
-            + placarJogador2;
-
-        byte[] data =
-            Encoding.UTF8.GetBytes(
-                mensagem
-            );
-
+        if (server == null || endpoint == null) return;
         try
         {
-            server.Send(
-                data,
-                data.Length,
-                destino
-            );
+            byte[] data = Encoding.UTF8.GetBytes(message);
+            server.Send(data, data.Length, endpoint);
         }
         catch (Exception e)
         {
-            Debug.LogError(
-                "Erro ao enviar placar: "
-                + e.Message
-            );
+            if (running) Debug.LogWarning("Não foi possível enviar mensagem UDP: " + e.Message);
         }
     }
 
-    // =====================================================
-    // ENVIAR PARA TODOS OS CLIENTES
-    // =====================================================
-
-    void Broadcast(
-        string mensagem
-    )
+    private void Broadcast(string message)
     {
-        byte[] data =
-            Encoding.UTF8.GetBytes(
-                mensagem
-            );
-
-        foreach (
-            KeyValuePair<int, IPEndPoint> client
-            in clients
-        )
+        List<IPEndPoint> destinos = new List<IPEndPoint>();
+        lock (clientsLock)
         {
-            try
-            {
-                server.Send(
-                    data,
-                    data.Length,
-                    client.Value
-                );
-            }
-            catch
-            {
-                // Ignora erro individual
-            }
+            foreach (KeyValuePair<int, IPEndPoint> item in clients)
+                destinos.Add(new IPEndPoint(item.Value.Address, item.Value.Port));
         }
+
+        for (int i = 0; i < destinos.Count; i++)
+            SendTo(destinos[i], message);
     }
 
-    // =====================================================
-    // RESETAR PLACAR
-    // =====================================================
-
-    public void ResetarPlacar()
+    // Chamado pelo BallController quando ocorre um gol.
+    public void RegistrarGol(bool golDoJogador1)
     {
-        placarJogador1 = 0;
-        placarJogador2 = 0;
+        if (golDoJogador1)
+            placar1++;
+        else
+            placar2++;
 
-        Debug.Log(
-            "Placar resetado."
-        );
-
-        EnviarPlacar();
+        Debug.Log("Placar: " + placar1 + " x " + placar2);
+        Broadcast("SCORE:" + placar1 + ";" + placar2);
     }
-
-    // =====================================================
-    // ENCERRAR SERVIDOR
-    // =====================================================
 
     void OnApplicationQuit()
     {
         running = false;
-
         if (server != null)
         {
-            try
-            {
-                server.Close();
-            }
-            catch
-            {
-            }
-
+            try { server.Close(); } catch { }
             server = null;
         }
-
-        if (
-            receiveThread != null &&
-            receiveThread.IsAlive
-        )
+        if (receiveThread != null && receiveThread.IsAlive)
         {
-            try
-            {
-                receiveThread.Join(200);
-            }
-            catch
-            {
-            }
+            try { receiveThread.Join(200); } catch { }
         }
-
-        Debug.Log(
-            "Servidor UDP encerrado."
-        );
     }
 }

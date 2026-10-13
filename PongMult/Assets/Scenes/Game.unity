@@ -1873,7 +1873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f578566f07d08524092b553dd61b5c5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPServer
-  porta: 7777
+  porta: 5001
   placarJogador1: 0
   placarJogador2: 0
 --- !u!4 &1942356321
